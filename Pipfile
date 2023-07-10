@@ -13,6 +13,8 @@ levenshtein = "*"
 func-timeout = "*"
 
 [dev-packages]
+black = "*"
+isort = "*"
 
 [requires]
 python_version = "2.7"
