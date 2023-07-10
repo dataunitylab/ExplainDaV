@@ -470,7 +470,7 @@ def main(ext_input = None, ext_time_limit = 60, what_to_explain = 'columns', tar
 
                         dirname = os.getcwd() + "/test_results/validate"
                         filename = dirname + "/exp0_results_" + str(test_data['TestName']) + "_" + str(
-                            test_data['NumSamples']) + ".txt"
+                            test_data['NumSamples']) + ".json"
                         if not os.path.exists(dirname):
                             try:
                                 os.makedirs(dirname)

@@ -507,13 +507,13 @@ def data_transformation_detection(X_train,
             foofah_input += str(y_test.head(number_of_rows_for_foofah).to_json(orient="values"))
             foofah_input += '}'
     # print(foofah_input)
-    with open('task_for_foofah.txt', 'w') as f:
+    with open('task_for_foofah.json', 'w') as f:
         f.write(foofah_input)
     # print(str(X.head(number_of_rows_for_foofah).to_json(orient="values")))
     # print(str(y.head(number_of_rows_for_foofah).to_json(orient="values")))
     # print(str(pd.DataFrame(X_train.join(y_train).head(number_of_rows_for_foofah)).to_json(orient="values")))
-    is_solved = foofah.main('task_for_foofah.txt', foofah_time_limit, what_to_explain, target_type, True)
-    # with open('task_for_foofah.txt', 'rb') as f:
+    is_solved = foofah.main('task_for_foofah.json', foofah_time_limit, what_to_explain, target_type, True)
+    # with open('task_for_foofah.json', 'rb') as f:
     #     test_data = json.load(f)
     # raw_data = [list(map(str, x)) for x in test_data['InputTable']]
     # print(raw_data)
@@ -549,7 +549,7 @@ def data_transformation_detection(X_train,
         eval_explainabilty_repeated_terms = len(seen_ops)
         eval_explainabilty_cognitive_chunks = len(X_train.columns)
         eval_validation = 1.0
-        with open('test_results/validate/exp0_results_1_1.txt', 'r') as f:
+        with open('test_results/validate/exp0_results_1_1.json', 'r') as f:
             eval_generalization = float(bool(dict(json.load(f))['Success']))
         # eval_generalization = 1.0
         # eval_simplicity = 0.9
@@ -586,7 +586,7 @@ def data_transformation_detection_column_removal(X_train,
     foofah_input += '}'
     with open('task_for_foofah.txt', 'w') as f:
         f.write(foofah_input)
-    is_solved = foofah.main('task_for_foofah.txt', foofah_time_limit, what_to_explain, target_type, True)
+    is_solved = foofah.main('task_for_foofah.json', foofah_time_limit, what_to_explain, target_type, True)
     eval_explainabilty_size = 0
     eval_explainabilty_cognitive_chunks = 1
     seen_ops = []
@@ -605,7 +605,7 @@ def data_transformation_detection_column_removal(X_train,
         eval_explainabilty_repeated_terms = len(seen_ops)
         eval_explainabilty_cognitive_chunks = len(X_train.columns)
         eval_validation = 1.0
-        with open('test_results/validate/exp0_results_1_1.txt', 'r') as f:
+        with open('test_results/validate/exp0_results_1_1.json', 'r') as f:
             eval_generalization = float(bool(dict(json.load(f))['Success']))
         eval_explainabilty = [eval_explainabilty_size,
                               eval_explainabilty_repeated_terms,
@@ -634,9 +634,9 @@ def data_transformation_detection_rows_removal(X_train,
     foofah_input += ', "TestAnswer": '
     foofah_input += str(y_test.head(number_of_rows_for_foofah).to_json(orient="values"))
     foofah_input += '}'
-    with open('task_for_foofah.txt', 'w') as f:
+    with open('task_for_foofah.json', 'w') as f:
         f.write(foofah_input)
-    is_solved = foofah.main('task_for_foofah.txt', foofah_time_limit, what_to_explain, target_type, True)
+    is_solved = foofah.main('task_for_foofah.json', foofah_time_limit, what_to_explain, target_type, True)
     eval_explainabilty_size = 0
     eval_explainabilty_cognitive_chunks = 1
     seen_ops = []
@@ -655,7 +655,7 @@ def data_transformation_detection_rows_removal(X_train,
         eval_explainabilty_repeated_terms = len(seen_ops)
         eval_explainabilty_cognitive_chunks = len(X_train.columns)
         eval_validation = 1.0
-        with open('test_results/validate/exp0_results_1_1.txt', 'r') as f:
+        with open('test_results/validate/exp0_results_1_1.json', 'r') as f:
             eval_generalization = float(bool(dict(json.load(f))['Success']))
         eval_explainabilty = [eval_explainabilty_size,
                               eval_explainabilty_repeated_terms,
@@ -684,9 +684,9 @@ def data_transformation_detection_rows_addition(X_train,
     foofah_input += ', "TestAnswer": '
     foofah_input += str(y_test.head(number_of_rows_for_foofah).to_json(orient="values"))
     foofah_input += '}'
-    with open('task_for_foofah.txt', 'w') as f:
+    with open('task_for_foofah.json', 'w') as f:
         f.write(foofah_input)
-    is_solved = foofah.main('task_for_foofah.txt', foofah_time_limit, what_to_explain, target_type, True)
+    is_solved = foofah.main('task_for_foofah.json', foofah_time_limit, what_to_explain, target_type, True)
     eval_explainabilty_size = 0
     eval_explainabilty_cognitive_chunks = 1
     seen_ops = []
@@ -705,7 +705,7 @@ def data_transformation_detection_rows_addition(X_train,
         eval_explainabilty_repeated_terms = len(seen_ops)
         eval_explainabilty_cognitive_chunks = len(X_train.columns)
         eval_validation = 1.0
-        with open('test_results/validate/exp0_results_1_1.txt', 'r') as f:
+        with open('test_results/validate/exp0_results_1_1.json', 'r') as f:
             eval_generalization = float(bool(dict(json.load(f))['Success']))
         eval_explainabilty = [eval_explainabilty_size,
                               eval_explainabilty_repeated_terms,
