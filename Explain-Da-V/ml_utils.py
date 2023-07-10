@@ -711,7 +711,7 @@ def learn_data_transformation_REGRESSION(X_train, y_train, X_test, y_test,
 def extend_features_poly(X, poly_size=2):
     poly = PolynomialFeatures(poly_size, include_bias=False)
     extended_X = poly.fit_transform(X)
-    names = poly.get_feature_names()
+    names = poly.get_feature_names_out()
     extended_X = np.nan_to_num(extended_X)
     # extended_X = extended_X.where(extended_X > new_inf, new_inf)
     # extended_X = extended_X.where(extended_X < -new_inf, -new_inf)
