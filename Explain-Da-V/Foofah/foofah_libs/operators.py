@@ -1,30 +1,32 @@
-import re
 import csv
-from collections import OrderedDict
-import numpy as np
-from .prune_rules import contains_empty_col, add_empty_col
 import datetime
 import random
+import re
 import string
-from textblob import TextBlob
+from collections import OrderedDict
+
 import featuretools as ft
-import pandas as pd
 import nltk
+import numpy as np
+import pandas as pd
+from textblob import TextBlob
+
+from .prune_rules import add_empty_col, contains_empty_col
 
 try:
-    nltk.data.find('')
+    nltk.data.find("")
 except LookupError:
     nltk.download()
 from nltk.corpus import stopwords
 
 try:
-    nltk.data.find('corpus/stopwords')
+    nltk.data.find("corpus/stopwords")
 except LookupError:
-    nltk.download('stopwords')
+    nltk.download("stopwords")
 from nltk import stem
 
 lemmatizer = stem.WordNetLemmatizer()
-stopwords_list = set(stopwords.words('english'))
+stopwords_list = set(stopwords.words("english"))
 
 WRAP_1 = True
 WRAP_2 = True
@@ -43,7 +45,7 @@ def f_join_char(table, p1, c):
 
     new_table = []
     for x in table:
-        new_table.append(x[:p1] + [x[p1] + c + x[p1 + 1]] + x[(p1 + 2):])
+        new_table.append(x[:p1] + [x[p1] + c + x[p1 + 1]] + x[(p1 + 2) :])
 
     return new_table
 
@@ -54,7 +56,7 @@ def f_join(table, p1):
         return None
     new_table = []
     for x in table:
-        new_table.append(x[:p1] + [x[p1] + x[p1 + 1]] + x[(p1 + 2):])
+        new_table.append(x[:p1] + [x[p1] + x[p1 + 1]] + x[(p1 + 2) :])
 
     return new_table
 
@@ -65,13 +67,13 @@ def f_move_to_end(table, p1):
     if isinstance(table[0], list):
         new_table = []
         for x in table:
-            new_table.append(x[:p1] + x[p1 + 1:] + [x[p1]])
+            new_table.append(x[:p1] + x[p1 + 1 :] + [x[p1]])
 
         return new_table
 
     # 1d Table
     else:
-        return table[:p1] + table[p1 + 1:] + [table[p1]]
+        return table[:p1] + table[p1 + 1 :] + [table[p1]]
 
 
 # Concatenate every k rows
@@ -277,7 +279,7 @@ def f_wrap(table, col, cur_node=None):
         wrap_data[key] = []
 
     for row in table:
-        wrap_data[row[col]] += row[:col] + row[col + 1:]
+        wrap_data[row[col]] += row[:col] + row[col + 1 :]
         if len(wrap_data[row[col]]) > width:
             width = len(wrap_data[row[col]])
 
@@ -412,6 +414,7 @@ def f_transpose(table):
     # exit()
     return [list(i) for i in zip(*table)]
 
+
 # def f_swap_columns(table, col1, col2):
 #     if not isinstance(table[0], list):
 #         return table
@@ -420,6 +423,7 @@ def f_transpose(table):
 #         for x in table:
 #             new_table.append(x[:p1] + x[p1 + 1:] + [x[p1]])
 #         return new_table
+
 
 def _get_col_dtype(col):
     """
@@ -440,67 +444,83 @@ def _get_col_dtype(col):
 
 
 def f_groupby(table, col, op):
-    es = ft.EntitySet(id='main')
+    es = ft.EntitySet(id="main")
 
     try:
         df = pd.DataFrame(table)
         df.columns = [str(col) for col in df.columns]
-        df = df.astype(dict(zip(list(df.columns),
-                                [_get_col_dtype(df[col]) for col in df.columns])))
-        es.add_dataframe(dataframe_name='main', dataframe=df, make_index=True, index='index')
-        es.normalize_dataframe(new_dataframe_name="main_projected",
-                               base_dataframe_name="main",
-                               index=str(col))
-        new_df = ft.dfs(target_dataframe_name="main_projected", entityset=es, agg_primitives=[op])[0].reset_index()
-        new_table = new_df.astype(str) .to_json(orient="values")
+        df = df.astype(
+            dict(zip(list(df.columns), [_get_col_dtype(df[col]) for col in df.columns]))
+        )
+        es.add_dataframe(
+            dataframe_name="main", dataframe=df, make_index=True, index="index"
+        )
+        es.normalize_dataframe(
+            new_dataframe_name="main_projected",
+            base_dataframe_name="main",
+            index=str(col),
+        )
+        new_df = ft.dfs(
+            target_dataframe_name="main_projected", entityset=es, agg_primitives=[op]
+        )[0].reset_index()
+        new_table = new_df.astype(str).to_json(orient="values")
     except:
         new_table = table
     return new_table
 
 
 def f_groupby_add_all(table, col, op):
-    es = ft.EntitySet(id='main')
+    es = ft.EntitySet(id="main")
     df = pd.DataFrame(table)
     df.columns = [str(col) for col in df.columns]
-    df = df.astype(dict(zip(list(df.columns),
-                            [_get_col_dtype(df[col]) for col in df.columns])))
-    es.add_dataframe(dataframe_name='main', dataframe=df, make_index=True, index='index')
-    es.normalize_dataframe(new_dataframe_name="main_projected",
-                           base_dataframe_name="main",
-                           index=str(col))
-    new_df = ft.dfs(target_dataframe_name="main", entityset=es, agg_primitives=[op])[0].reset_index()
-    new_table = new_df.astype(str) .to_json(orient="values")
+    df = df.astype(
+        dict(zip(list(df.columns), [_get_col_dtype(df[col]) for col in df.columns]))
+    )
+    es.add_dataframe(
+        dataframe_name="main", dataframe=df, make_index=True, index="index"
+    )
+    es.normalize_dataframe(
+        new_dataframe_name="main_projected", base_dataframe_name="main", index=str(col)
+    )
+    new_df = ft.dfs(target_dataframe_name="main", entityset=es, agg_primitives=[op])[
+        0
+    ].reset_index()
+    new_table = new_df.astype(str).to_json(orient="values")
     return new_table
 
 
 def f_pivot(table, col):
     df = pd.DataFrame(table)
     df.columns = [str(col) for col in df.columns]
-    df = df.astype(dict(zip(list(df.columns),
-                            [_get_col_dtype(df[col]) for col in df.columns])))
+    df = df.astype(
+        dict(zip(list(df.columns), [_get_col_dtype(df[col]) for col in df.columns]))
+    )
     new_df = df.pivot(index=df.index, columns=col).reset_index()
-    new_table = new_df.astype(str) .to_json(orient="values")
+    new_table = new_df.astype(str).to_json(orient="values")
     return new_table
 
 
 def f_unpivot(table, col):
     df = pd.DataFrame(table)
     df.columns = [str(col) for col in df.columns]
-    df = df.astype(dict(zip(list(df.columns),
-                            [_get_col_dtype(df[col]) for col in df.columns])))
+    df = df.astype(
+        dict(zip(list(df.columns), [_get_col_dtype(df[col]) for col in df.columns]))
+    )
     new_df = df.melt(id_vars=[df.columns[0]], value_vars=[df.columns[col]])
-    new_table = new_df.astype(str) .to_json(orient="values")
+    new_table = new_df.astype(str).to_json(orient="values")
     return new_table
 
 
 def f_explode(table, col):
     df = pd.DataFrame(table)
     df.columns = [str(col) for col in df.columns]
-    df = df.astype(dict(zip(list(df.columns),
-                            [_get_col_dtype(df[col]) for col in df.columns])))
+    df = df.astype(
+        dict(zip(list(df.columns), [_get_col_dtype(df[col]) for col in df.columns]))
+    )
     new_df = df.explode(df.columns[col])
     new_table = new_df.astype(str).to_json(orient="values")
     return new_table
+
 
 def f_read_csv(raw_data):
     if len(raw_data) == 1 and len(raw_data[0]) == 1:
@@ -513,7 +533,9 @@ def f_read_csv(raw_data):
 
         for delimiter in delimiter_list:
             for quote_char in quote_char_list:
-                temp_table = list(csv.reader(rows, delimiter=delimiter, quotechar=quote_char))
+                temp_table = list(
+                    csv.reader(rows, delimiter=delimiter, quotechar=quote_char)
+                )
                 row_len = set()
                 for row in temp_table:
                     row_len.add(len(row))
@@ -553,7 +575,7 @@ def f_split(table, col, splitter, plus=False):
     result_table = []
 
     for idx, row in enumerate(table):
-        result_table.append(row[:col] + added_cells[idx] + row[col + 1:])
+        result_table.append(row[:col] + added_cells[idx] + row[col + 1 :])
 
     if PRUNE_1:
         if add_empty_col(new_table=result_table, orig_table=table):
@@ -573,7 +595,7 @@ def f_split_first(table, col, splitter):
 
     result_table = []
     for idx, row in enumerate(table):
-        result_table.append(row[:col] + added_cells[idx] + row[col + 1:])
+        result_table.append(row[:col] + added_cells[idx] + row[col + 1 :])
     # print(result_table)
     if PRUNE_1:
         if add_empty_col(new_table=result_table, orig_table=table):
@@ -591,9 +613,9 @@ def f_divide_on_comma(table, col):
 
     for row in table:
         if "," in row[col]:
-            new_table.append(row[:col] + [row[col]] + [""] + row[col + 1:])
+            new_table.append(row[:col] + [row[col]] + [""] + row[col + 1 :])
         else:
-            new_table.append(row[:col] + [""] + [row[col]] + row[col + 1:])
+            new_table.append(row[:col] + [""] + [row[col]] + row[col + 1 :])
 
     if PRUNE_1:
         if add_empty_col(new_table=new_table, orig_table=table):
@@ -611,9 +633,9 @@ def f_divide_on_all_alphabets(table, col):
 
     for row in table:
         if row[col].isalpha():
-            new_table.append(row[:col] + [row[col]] + [""] + row[col + 1:])
+            new_table.append(row[:col] + [row[col]] + [""] + row[col + 1 :])
         else:
-            new_table.append(row[:col] + [""] + [row[col]] + row[col + 1:])
+            new_table.append(row[:col] + [""] + [row[col]] + row[col + 1 :])
 
     if PRUNE_1:
         if add_empty_col(new_table=new_table, orig_table=table):
@@ -631,9 +653,9 @@ def f_divide_on_all_digits(table, col):
 
     for row in table:
         if row[col].isdigit():
-            new_table.append(row[:col] + [row[col]] + [""] + row[col + 1:])
+            new_table.append(row[:col] + [row[col]] + [""] + row[col + 1 :])
         else:
-            new_table.append(row[:col] + [""] + [row[col]] + row[col + 1:])
+            new_table.append(row[:col] + [""] + [row[col]] + row[col + 1 :])
 
     if PRUNE_1:
         if add_empty_col(new_table=new_table, orig_table=table):
@@ -651,9 +673,9 @@ def f_divide_on_alphanum(table, col):
 
     for row in table:
         if row[col].isalnum():
-            new_table.append(row[:col] + [row[col]] + [""] + row[col + 1:])
+            new_table.append(row[:col] + [row[col]] + [""] + row[col + 1 :])
         else:
-            new_table.append(row[:col] + [""] + [row[col]] + row[col + 1:])
+            new_table.append(row[:col] + [""] + [row[col]] + row[col + 1 :])
 
     if PRUNE_1:
         if add_empty_col(new_table=new_table, orig_table=table):
@@ -665,7 +687,7 @@ def f_divide_on_alphanum(table, col):
 def validate_date(date_text):
     is_date = False
     try:
-        datetime.datetime.strptime(date_text, '%m/%d/%Y')
+        datetime.datetime.strptime(date_text, "%m/%d/%Y")
         is_date = True
     except ValueError:
         pass
@@ -682,9 +704,9 @@ def f_divide_on_date(table, col):
 
     for row in table:
         if validate_date(row[col]):
-            new_table.append(row[:col] + [row[col]] + [""] + row[col + 1:])
+            new_table.append(row[:col] + [row[col]] + [""] + row[col + 1 :])
         else:
-            new_table.append(row[:col] + [""] + [row[col]] + row[col + 1:])
+            new_table.append(row[:col] + [""] + [row[col]] + row[col + 1 :])
 
     if PRUNE_1:
         if add_empty_col(new_table=new_table, orig_table=table):
@@ -702,9 +724,9 @@ def f_divide_on_dash(table, col):
 
     for row in table:
         if "-" in row[col]:
-            new_table.append(row[:col] + [row[col]] + [""] + row[col + 1:])
+            new_table.append(row[:col] + [row[col]] + [""] + row[col + 1 :])
         else:
-            new_table.append(row[:col] + [""] + [row[col]] + row[col + 1:])
+            new_table.append(row[:col] + [""] + [row[col]] + row[col + 1 :])
 
     if PRUNE_1:
         if add_empty_col(new_table=new_table, orig_table=table):
@@ -714,7 +736,16 @@ def f_divide_on_dash(table, col):
 
 
 # meta_chars = ["\d+", "\\u+", "\l+", "\a+", "[A-Za-z0-9]+", "[A-Za-z0-9]+", "\w+", "[A-Za-z0-9\ ]+"]
-meta_chars = ["\d+", r"\\u+", r"\\l+", "\a+", "[A-Za-z0-9]+", "[A-Za-z0-9]+", "\w+", "[A-Za-z0-9\ ]+"]
+meta_chars = [
+    "\d+",
+    r"\\u+",
+    r"\\l+",
+    "\a+",
+    "[A-Za-z0-9]+",
+    "[A-Za-z0-9]+",
+    "\w+",
+    "[A-Za-z0-9\ ]+",
+]
 
 re_dict = {}
 for meta_char in meta_chars:
@@ -741,7 +772,7 @@ def infer_regex(string_set):
     alnum_str = ""
 
     for char in str1:
-        if not char.isalnum() and char != ' ':
+        if not char.isalnum() and char != " ":
             if alnum_found:
                 meta_chars = find_metachar(alnum_str)
                 temp_set = set()
@@ -807,7 +838,7 @@ def find_token(string, index, forward=True):
         while index + i < len(string) and string[index + i].isalnum():
             i += 1
 
-        return string[orig:index + i]
+        return string[orig : index + i]
     else:
         # Go on until it encouters first alphanumeric
         orig = index
@@ -818,7 +849,7 @@ def find_token(string, index, forward=True):
         while index >= i and string[index - i].isalnum():
             i += 1
 
-        return string[index - i + 1:orig]
+        return string[index - i + 1 : orig]
 
 
 def f_extract(table, col, regex, prefix="", suffix=""):
@@ -872,7 +903,7 @@ def f_split_w(table, col):
     result_table = []
 
     for idx, row in enumerate(table):
-        result_table.append(row[:col] + added_cells[idx] + row[col + 1:])
+        result_table.append(row[:col] + added_cells[idx] + row[col + 1 :])
 
     if PRUNE_1:
         if add_empty_col(new_table=result_table, orig_table=table):
@@ -903,7 +934,7 @@ def f_split_tab(table, col):
     result_table = []
 
     for idx, row in enumerate(table):
-        result_table.append(row[:col] + added_cells[idx] + row[col + 1:])
+        result_table.append(row[:col] + added_cells[idx] + row[col + 1 :])
 
     if PRUNE_1:
         if add_empty_col(new_table=result_table, orig_table=table):
@@ -922,7 +953,7 @@ def f_drop(table, col):
         return None
 
     for x in table:
-        new_table.append(x[:col] + x[col + 1:])
+        new_table.append(x[:col] + x[col + 1 :])
     # print(new_table)
     return new_table
 
@@ -941,41 +972,54 @@ def f_count_s(table, col, char):
         except:
             count = str(row[col].count(char))
         # result_table.append([count, ])
-        result_table.append(row[:col + 1] + [count, ] + row[col + 1:])
+        result_table.append(
+            row[: col + 1]
+            + [
+                count,
+            ]
+            + row[col + 1 :]
+        )
     return result_table
 
 
 def f_number_of_words(table, col):
-    return f_count_s(table, col, ' ')
+    return f_count_s(table, col, " ")
 
 
 def f_number_of_sentences(table, col):
-    return f_count_s(table, col, '.')
+    return f_count_s(table, col, ".")
 
 
 def f_number_of_rows(table, col):
-    return f_count_s(table, col, '\n')
+    return f_count_s(table, col, "\n")
 
 
 def f_number_of_questions(table, col):
-    return f_count_s(table, col, '?')
+    return f_count_s(table, col, "?")
 
 
 def f_number_of_emails(table, col):
-    return f_count_s(table, col, r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b')
+    return f_count_s(table, col, r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b")
 
 
 def f_number_of_urls(table, col):
-    return f_count_s(table, col, 'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+')
+    return f_count_s(
+        table,
+        col,
+        "http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+",
+    )
 
 
 def f_number_of_ips(table, col):
-    return f_count_s(table, col, r'^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$')
+    return f_count_s(table, col, r"^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$")
 
 
 def f_number_of_phone_numbers(table, col):
-    return f_count_s(table, col,
-                     r'[\+\d]?(\d{2,3}[-\.\s]??\d{2,3}[-\.\s]??\d{4}|\(\d{3}\)\s*\d{3}[-\.\s]??\d{4}|\d{3}[-\.\s]??\d{4})')
+    return f_count_s(
+        table,
+        col,
+        r"[\+\d]?(\d{2,3}[-\.\s]??\d{2,3}[-\.\s]??\d{4}|\(\d{3}\)\s*\d{3}[-\.\s]??\d{4}|\d{3}[-\.\s]??\d{4})",
+    )
 
 
 def f_number_of_punctuations(table, col):
@@ -987,7 +1031,13 @@ def f_number_of_stopwords(table, col):
     for row in table:
         count = str(len([word for word in row[col].split() if word in stopwords_list]))
         # result_table.append([count, ])
-        result_table.append(row[:col + 1] + [count, ] + row[col + 1:])
+        result_table.append(
+            row[: col + 1]
+            + [
+                count,
+            ]
+            + row[col + 1 :]
+        )
     return result_table
 
 
@@ -1000,41 +1050,56 @@ def f_exists_s(table, col, char):
         # exists = str(int(char in row[col]))
         exists = str(int(bool(len(re.findall(row[col], char)))))
         # result_table.append([exists, ])
-        result_table.append(row[:col + 1] + [exists, ] + row[col + 1:])
+        result_table.append(
+            row[: col + 1]
+            + [
+                exists,
+            ]
+            + row[col + 1 :]
+        )
     return result_table
 
 
 def f_contains_multiple_words(table, col):
-    return f_exists_s(table, col, ' ')
+    return f_exists_s(table, col, " ")
 
 
 def f_contains_multiple_sentences(table, col):
-    return f_exists_s(table, col, '.')
+    return f_exists_s(table, col, ".")
 
 
 def f_contains_multiple_rows(table, col):
-    return f_exists_s(table, col, '\n')
+    return f_exists_s(table, col, "\n")
 
 
 def f_contains_a_questions(table, col):
-    return f_exists_s(table, col, '?')
+    return f_exists_s(table, col, "?")
 
 
 def f_contains_an_email(table, col):
-    return f_exists_s(table, col, r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b')
+    return f_exists_s(
+        table, col, r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b"
+    )
 
 
 def f_contains_an_url(table, col):
-    return f_exists_s(table, col, 'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+')
+    return f_exists_s(
+        table,
+        col,
+        "http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+",
+    )
 
 
 def f_contains_an_ip(table, col):
-    return f_exists_s(table, col, r'^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$')
+    return f_exists_s(table, col, r"^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$")
 
 
 def f_contains_a_phone_number(table, col):
-    return f_exists_s(table, col,
-                      r'[\+\d]?(\d{2,3}[-\.\s]??\d{2,3}[-\.\s]??\d{4}|\(\d{3}\)\s*\d{3}[-\.\s]??\d{4}|\d{3}[-\.\s]??\d{4})')
+    return f_exists_s(
+        table,
+        col,
+        r"[\+\d]?(\d{2,3}[-\.\s]??\d{2,3}[-\.\s]??\d{4}|\(\d{3}\)\s*\d{3}[-\.\s]??\d{4}|\d{3}[-\.\s]??\d{4})",
+    )
 
 
 def f_contains_a_punctuation(table, col):
@@ -1044,9 +1109,17 @@ def f_contains_a_punctuation(table, col):
 def f_contains_a_stopword(table, col):
     result_table = []
     for row in table:
-        count = str(bool(len([word for word in row[col].split() if word in stopwords_list])))
+        count = str(
+            bool(len([word for word in row[col].split() if word in stopwords_list]))
+        )
         # result_table.append([count, ])
-        result_table.append(row[:col + 1] + [count, ] + row[col + 1:])
+        result_table.append(
+            row[: col + 1]
+            + [
+                count,
+            ]
+            + row[col + 1 :]
+        )
     return result_table
 
 
@@ -1058,7 +1131,13 @@ def f_len(table, col):
     for row in table:
         len_str = str(len(row[col]))
         # result_table.append([len_str, ])
-        result_table.append(row[:col + 1] + [len_str, ] + row[col + 1:])
+        result_table.append(
+            row[: col + 1]
+            + [
+                len_str,
+            ]
+            + row[col + 1 :]
+        )
     # print(result_table)
     return result_table
 
@@ -1076,8 +1155,15 @@ def f_is_one_hot(table, col):
         seen_values_for_table_col[col] = []
     # values_in_the_col = list(set([row[col] for row in table if row[col] not in
     #                               seen_values_for_table_col[(str(table), col)]]))
-    values_in_the_col = list(set([row[col] for row in table if row[col] not in
-                                  seen_values_for_table_col[col]]))
+    values_in_the_col = list(
+        set(
+            [
+                row[col]
+                for row in table
+                if row[col] not in seen_values_for_table_col[col]
+            ]
+        )
+    )
     # if values_in_the_col == ['0', '1']:
     #     return table
     available_cols = list(range(len(table[0])))
@@ -1091,8 +1177,15 @@ def f_is_one_hot(table, col):
         # print(col)
         if col not in seen_values_for_table_col:
             seen_values_for_table_col[col] = []
-        values_in_the_col = list(set([row[col] for row in table if row[col] not in
-                                      seen_values_for_table_col[col]]))
+        values_in_the_col = list(
+            set(
+                [
+                    row[col]
+                    for row in table
+                    if row[col] not in seen_values_for_table_col[col]
+                ]
+            )
+        )
         is_change = True
         available_cols.remove(col)
     # if is_change:
@@ -1106,7 +1199,9 @@ def f_is_one_hot(table, col):
         return table
     sampled_val = random.sample(values_in_the_col, 1)[0]
     # seen_values_for_table_col[(str(table), col)] += [sampled_val, ]
-    seen_values_for_table_col[col] += [sampled_val, ]
+    seen_values_for_table_col[col] += [
+        sampled_val,
+    ]
     # print(sampled_val)
     # print(seen_values_for_table_col)
     result_table = []
@@ -1117,7 +1212,13 @@ def f_is_one_hot(table, col):
         # print(row[:col+1] + [is_value, ] + row[col + 1:])
         # NOTE: Should I replace or add. Replacing makes it a one shot one we reach the spot. Adding creates a much larger search space
         if len(values_in_the_col):
-            result_table.append(row[:col + 1] + [is_value, ] + row[col + 1:])
+            result_table.append(
+                row[: col + 1]
+                + [
+                    is_value,
+                ]
+                + row[col + 1 :]
+            )
         else:
             result_table.append(row)
     # print(result_table)
@@ -1126,59 +1227,92 @@ def f_is_one_hot(table, col):
 
 # FULL TABLE OPERATION
 def f_normalize(table, col):
-    print('To-Be-Implemented')
+    print("To-Be-Implemented")
     return None
 
 
 # New Transformations (NLP Data Cleaning)
 
+
 def f_remove_stopwords(table, col):
     result_table = []
     for row in table:
-        new_row = ' '.join([word for word in row[col].split() if word not in stopwords_list])
+        new_row = " ".join(
+            [word for word in row[col].split() if word not in stopwords_list]
+        )
         # result_table.append([count, ])
-        result_table.append(row[:col + 1] + [new_row, ] + row[col + 1:])
+        result_table.append(
+            row[: col + 1]
+            + [
+                new_row,
+            ]
+            + row[col + 1 :]
+        )
     return result_table
 
 
 def f_remove_numeric(table, col):
     result_table = []
     for row in table:
-        new_row = ' '.join([word for word in row[col].split() if not word.isdigit()])
+        new_row = " ".join([word for word in row[col].split() if not word.isdigit()])
         # result_table.append([count, ])
-        result_table.append(row[:col + 1] + [new_row, ] + row[col + 1:])
+        result_table.append(
+            row[: col + 1]
+            + [
+                new_row,
+            ]
+            + row[col + 1 :]
+        )
     return result_table
 
 
 def f_remove_punctuation(table, col):
     # print(table)
     result_table = []
-    regex = re.compile('[%s]' % re.escape(string.punctuation))
+    regex = re.compile("[%s]" % re.escape(string.punctuation))
     for row in table:
-        new_row = regex.sub('', row[col])
+        new_row = regex.sub("", row[col])
         # result_table.append([count, ])
-        result_table.append(row[:col + 1] + [new_row, ] + row[col + 1:])
+        result_table.append(
+            row[: col + 1]
+            + [
+                new_row,
+            ]
+            + row[col + 1 :]
+        )
     # print(result_table)
     return result_table
 
 
 def f_remove_url(table, col):
     result_table = []
-    regex = re.compile(r'https?://\S+|www\.\S+')
+    regex = re.compile(r"https?://\S+|www\.\S+")
     for row in table:
-        new_row = regex.sub('', row[col])
+        new_row = regex.sub("", row[col])
         # result_table.append([count, ])
-        result_table.append(row[:col + 1] + [new_row, ] + row[col + 1:])
+        result_table.append(
+            row[: col + 1]
+            + [
+                new_row,
+            ]
+            + row[col + 1 :]
+        )
     return result_table
 
 
 def f_remove_html_tags(table, col):
     result_table = []
-    regex = re.compile(r'<.*?>')
+    regex = re.compile(r"<.*?>")
     for row in table:
-        new_row = regex.sub('', row[col])
+        new_row = regex.sub("", row[col])
         # result_table.append([count, ])
-        result_table.append(row[:col + 1] + [new_row, ] + row[col + 1:])
+        result_table.append(
+            row[: col + 1]
+            + [
+                new_row,
+            ]
+            + row[col + 1 :]
+        )
     return result_table
 
 
@@ -1186,9 +1320,17 @@ def f_spell_correction(table, col):
     print(table)
     result_table = []
     for row in table:
-        new_row = ' '.join([word for word in row[col].split() if not TextBlob(row[col]).correct()])
+        new_row = " ".join(
+            [word for word in row[col].split() if not TextBlob(row[col]).correct()]
+        )
         # result_table.append([count, ])
-        result_table.append(row[:col + 1] + [new_row, ] + row[col + 1:])
+        result_table.append(
+            row[: col + 1]
+            + [
+                new_row,
+            ]
+            + row[col + 1 :]
+        )
     print(result_table)
     return result_table
 
@@ -1203,7 +1345,13 @@ def f_lemmatization(table, col):
         # if new_row != row[col]:
         #     print(row[col])
         #     print(new_row)
-        result_table.append(row[:col + 1] + [new_row, ] + row[col + 1:])
+        result_table.append(
+            row[: col + 1]
+            + [
+                new_row,
+            ]
+            + row[col + 1 :]
+        )
     # print(result_table)
     return result_table
 
@@ -1213,7 +1361,13 @@ def f_lower(table, col):
     result_table = []
     for row in table:
         new_row = row[col].lower()
-        result_table.append(row[:col + 1] + [new_row, ] + row[col + 1:])
+        result_table.append(
+            row[: col + 1]
+            + [
+                new_row,
+            ]
+            + row[col + 1 :]
+        )
     # print(result_table)
     return result_table
 
@@ -1222,303 +1376,743 @@ def add_ops():
     ops = list()
 
     ops.append(
-        {'name': 'f_fold', 'fxn': lambda x, p1: f_fold(x, p1), 'params': {}, 'if_col': True, 'char': '', 'cost': 1.0,
-         'num_params': 2,
-         })
+        {
+            "name": "f_fold",
+            "fxn": lambda x, p1: f_fold(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
 
-    if WRAP_1: ops.append(
-        {'name': 'f_wrap', 'fxn': lambda x, p1: f_wrap(x, p1), 'params': {}, 'if_col': True, 'char': '', 'cost': 1.0,
-         'num_params': 2,
-         })
+    if WRAP_1:
+        ops.append(
+            {
+                "name": "f_wrap",
+                "fxn": lambda x, p1: f_wrap(x, p1),
+                "params": {},
+                "if_col": True,
+                "char": "",
+                "cost": 1.0,
+                "num_params": 2,
+            }
+        )
 
-    if WRAP_2: ops.append({'name': 'f_wrap_one_row', 'fxn': lambda x: f_wrap_one_row(x), 'params': {}, 'if_col': False,
-                           'char': '', 'cost': 1.0,
-                           'num_params': 1,
-                           })
-
-    ops.append(
-        {'name': 'f_fold_header', 'fxn': lambda x, p1: f_fold_header(x, p1), 'params': {}, 'if_col': True, 'char': '',
-         'cost': 1.0, 'num_params': 2,
-         })
-    ops.append(
-        {'name': 'f_unfold', 'fxn': lambda x, p1: f_unfold_header(x, p1), 'params': {}, 'if_col': True, 'char': '',
-         'cost': 1.0, 'num_params': 2,
-         })
-
-    ops.append(
-        {'name': 'f_drop', 'fxn': lambda x, p1: f_drop(x, p1), 'params': {}, 'if_col': True, 'char': '', 'cost': 1.0,
-         'num_params': 2,
-         })
-
-    ops.append(
-        {'name': 'f_split_w', 'fxn': lambda x, p1: f_split_w(x, p1), 'params': {}, 'if_col': True, 'char': 'whitespace',
-         'cost': 1.0, 'num_params': 2,
-         })
-    ops.append(
-        {'name': 'f_split_tab', 'fxn': lambda x, p1: f_split_tab(x, p1), 'params': {}, 'if_col': True, 'char': "\t",
-         'cost': 1.0, 'num_params': 2,
-         })
-
-    ops.append(
-        {'name': 'f_join_char', 'fxn': lambda x, p1, char="\t": f_join_char(x, p1, char), 'params': {2: '\'\\t\''},
-         'if_col': True, 'char': '\t', 'cost': 1.0,
-         'num_params': 3, })
-    ops.append(
-        {'name': 'f_join', 'fxn': lambda x, p1: f_join(x, p1), 'params': {}, 'if_col': True, 'char': '', 'cost': 1.0,
-         'num_params': 2,
-         })
+    if WRAP_2:
+        ops.append(
+            {
+                "name": "f_wrap_one_row",
+                "fxn": lambda x: f_wrap_one_row(x),
+                "params": {},
+                "if_col": False,
+                "char": "",
+                "cost": 1.0,
+                "num_params": 1,
+            }
+        )
 
     ops.append(
-        {'name': 'f_move_to_end', 'fxn': lambda x, p1: f_move_to_end(x, p1), 'params': {}, 'if_col': True, 'char': '',
-         'cost': 1.0, 'num_params': 2,
-         })
+        {
+            "name": "f_fold_header",
+            "fxn": lambda x, p1: f_fold_header(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
+    ops.append(
+        {
+            "name": "f_unfold",
+            "fxn": lambda x, p1: f_unfold_header(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
 
     ops.append(
-        {'name': 'f_delete', 'fxn': lambda x, p1: f_delete(x, p1), 'params': {}, 'if_col': True,
-         'char': '', 'cost': 1.0, 'num_params': 2,
-         })
-
-    ops.append({'name': 'f_delete_empty_cols', 'fxn': lambda x: f_delete_empty_cols(x), 'params': {}, 'if_col': False,
-                'char': '', 'cost': 1.0,
-                'num_params': 1, })
-
-    ops.append(
-        {'name': 'f_fill', 'fxn': lambda x, p1: f_fill(x, p1), 'params': {}, 'if_col': True, 'char': '', 'cost': 1.0,
-         'num_params': 2,
-         })
-
-    if WRAP_3: ops.append(
-        {'name': 'f_wrap_every_k_rows', 'fxn': lambda x: f_wrap_every_k_rows(x, 2), 'params': {1: '2'}, 'if_col': False,
-         'char': '', 'cost': 1.0, 'num_params': 1,
-         })
-    if WRAP_3: ops.append(
-        {'name': 'f_wrap_every_k_rows', 'fxn': lambda x: f_wrap_every_k_rows(x, 3), 'params': {1: '3'}, 'if_col': False,
-         'char': '', 'cost': 1.0, 'num_params': 1,
-         })
-    if WRAP_3: ops.append(
-        {'name': 'f_wrap_every_k_rows', 'fxn': lambda x: f_wrap_every_k_rows(x, 4), 'params': {1: '4'}, 'if_col': False,
-         'char': '', 'cost': 1.0, 'num_params': 1,
-         })
-    if WRAP_3: ops.append(
-        {'name': 'f_wrap_every_k_rows', 'fxn': lambda x: f_wrap_every_k_rows(x, 5), 'params': {1: '5'}, 'if_col': False,
-         'char': '', 'cost': 1.0, 'num_params': 1,
-         })
+        {
+            "name": "f_drop",
+            "fxn": lambda x, p1: f_drop(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
 
     ops.append(
-        {'name': 'f_divide_on_comma comma', 'fxn': lambda x, p1: f_divide_on_comma(x, p1), 'params': {}, 'if_col': True,
-         'char': '', 'cost': 1.0,
-         'num_params': 2, })
+        {
+            "name": "f_split_w",
+            "fxn": lambda x, p1: f_split_w(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "whitespace",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
     ops.append(
-        {'name': 'f_divide_on_all_digits', 'fxn': lambda x, p1: f_divide_on_all_digits(x, p1), 'params': {},
-         'if_col': True,
-         'char': '', 'cost': 1.0,
-         'num_params': 2, })
+        {
+            "name": "f_split_tab",
+            "fxn": lambda x, p1: f_split_tab(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "\t",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
+
     ops.append(
-        {'name': 'f_divide_on_all_alphabets', 'fxn': lambda x, p1: f_divide_on_all_alphabets(x, p1), 'params': {},
-         'if_col': True, 'char': '', 'cost': 1.0,
-         'num_params': 2, })
+        {
+            "name": "f_join_char",
+            "fxn": lambda x, p1, char="\t": f_join_char(x, p1, char),
+            "params": {2: "'\\t'"},
+            "if_col": True,
+            "char": "\t",
+            "cost": 1.0,
+            "num_params": 3,
+        }
+    )
     ops.append(
-        {'name': 'f_divide_on_alphanum', 'fxn': lambda x, p1: f_divide_on_alphanum(x, p1), 'params': {}, 'if_col': True,
-         'char': '', 'cost': 1.0,
-         'num_params': 2, })
-    ops.append({'name': 'f_divide_on_date', 'fxn': lambda x, p1: f_divide_on_date(x, p1), 'params': {}, 'if_col': True,
-                'char': '', 'cost': 1.0,
-                'num_params': 2, })
+        {
+            "name": "f_join",
+            "fxn": lambda x, p1: f_join(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
+
     ops.append(
-        {'name': 'divide_on f_divide_on_dash', 'fxn': lambda x, p1: f_divide_on_dash(x, p1), 'params': {},
-         'if_col': True,
-         'char': '', 'cost': 1.0,
-         'num_params': 2, })
+        {
+            "name": "f_move_to_end",
+            "fxn": lambda x, p1: f_move_to_end(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
+
+    ops.append(
+        {
+            "name": "f_delete",
+            "fxn": lambda x, p1: f_delete(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
+
+    ops.append(
+        {
+            "name": "f_delete_empty_cols",
+            "fxn": lambda x: f_delete_empty_cols(x),
+            "params": {},
+            "if_col": False,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 1,
+        }
+    )
+
+    ops.append(
+        {
+            "name": "f_fill",
+            "fxn": lambda x, p1: f_fill(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
+
+    if WRAP_3:
+        ops.append(
+            {
+                "name": "f_wrap_every_k_rows",
+                "fxn": lambda x: f_wrap_every_k_rows(x, 2),
+                "params": {1: "2"},
+                "if_col": False,
+                "char": "",
+                "cost": 1.0,
+                "num_params": 1,
+            }
+        )
+    if WRAP_3:
+        ops.append(
+            {
+                "name": "f_wrap_every_k_rows",
+                "fxn": lambda x: f_wrap_every_k_rows(x, 3),
+                "params": {1: "3"},
+                "if_col": False,
+                "char": "",
+                "cost": 1.0,
+                "num_params": 1,
+            }
+        )
+    if WRAP_3:
+        ops.append(
+            {
+                "name": "f_wrap_every_k_rows",
+                "fxn": lambda x: f_wrap_every_k_rows(x, 4),
+                "params": {1: "4"},
+                "if_col": False,
+                "char": "",
+                "cost": 1.0,
+                "num_params": 1,
+            }
+        )
+    if WRAP_3:
+        ops.append(
+            {
+                "name": "f_wrap_every_k_rows",
+                "fxn": lambda x: f_wrap_every_k_rows(x, 5),
+                "params": {1: "5"},
+                "if_col": False,
+                "char": "",
+                "cost": 1.0,
+                "num_params": 1,
+            }
+        )
+
+    ops.append(
+        {
+            "name": "f_divide_on_comma comma",
+            "fxn": lambda x, p1: f_divide_on_comma(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
+    ops.append(
+        {
+            "name": "f_divide_on_all_digits",
+            "fxn": lambda x, p1: f_divide_on_all_digits(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
+    ops.append(
+        {
+            "name": "f_divide_on_all_alphabets",
+            "fxn": lambda x, p1: f_divide_on_all_alphabets(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
+    ops.append(
+        {
+            "name": "f_divide_on_alphanum",
+            "fxn": lambda x, p1: f_divide_on_alphanum(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
+    ops.append(
+        {
+            "name": "f_divide_on_date",
+            "fxn": lambda x, p1: f_divide_on_date(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
+    ops.append(
+        {
+            "name": "divide_on f_divide_on_dash",
+            "fxn": lambda x, p1: f_divide_on_dash(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
 
     for s in delimiters:
         ops.append(
-            {'name': "f_split", 'fxn': lambda x, p1, s=s: f_split(x, p1, s), 'params': {2: "\'%s\'" % (s)},
-             'if_col': True,
-             'char': s, 'cost': 1.0, 'num_params': 3,
-             })
-        ops.append({'name': "f_split", 'fxn': lambda x, p1, s=s: f_split(x, p1, s, True),
-                    'params': {2: "\'%s\'" % (s), 3: 'True'}, 'if_col': True, 'char': s, 'cost': 1.0,
-                    'num_params': 4,
-                    })
-        ops.append({'name': "f_join_char", 'fxn': lambda x, p1, char=s: f_join_char(x, p1, char),
-                    'params': {2: "\'%s\'" % (s)}, 'if_col': True, 'char': s, 'cost': 1.0,
-                    'num_params': 3,
-                    })
+            {
+                "name": "f_split",
+                "fxn": lambda x, p1, s=s: f_split(x, p1, s),
+                "params": {2: "'%s'" % (s)},
+                "if_col": True,
+                "char": s,
+                "cost": 1.0,
+                "num_params": 3,
+            }
+        )
         ops.append(
-            {'name': "f_split_first", 'fxn': lambda x, p1, s=s: f_split_first(x, p1, s),
-             'params': {2: "\'%s\'" % (s)},
-             'if_col': True, 'char': s, 'cost': 1.0,
-             'num_params': 3, })
+            {
+                "name": "f_split",
+                "fxn": lambda x, p1, s=s: f_split(x, p1, s, True),
+                "params": {2: "'%s'" % (s), 3: "True"},
+                "if_col": True,
+                "char": s,
+                "cost": 1.0,
+                "num_params": 4,
+            }
+        )
+        ops.append(
+            {
+                "name": "f_join_char",
+                "fxn": lambda x, p1, char=s: f_join_char(x, p1, char),
+                "params": {2: "'%s'" % (s)},
+                "if_col": True,
+                "char": s,
+                "cost": 1.0,
+                "num_params": 3,
+            }
+        )
+        ops.append(
+            {
+                "name": "f_split_first",
+                "fxn": lambda x, p1, s=s: f_split_first(x, p1, s),
+                "params": {2: "'%s'" % (s)},
+                "if_col": True,
+                "char": s,
+                "cost": 1.0,
+                "num_params": 3,
+            }
+        )
 
     return ops
+
 
 def add_ops_auto_pipeline():
     ops = list()
 
     ops.append(
-        {'name': 'f_fold', 'fxn': lambda x, p1: f_fold(x, p1), 'params': {}, 'if_col': True, 'char': '', 'cost': 1.0,
-         'num_params': 2,
-         })
+        {
+            "name": "f_fold",
+            "fxn": lambda x, p1: f_fold(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
 
-    if WRAP_1: ops.append(
-        {'name': 'f_wrap', 'fxn': lambda x, p1: f_wrap(x, p1), 'params': {}, 'if_col': True, 'char': '', 'cost': 1.0,
-         'num_params': 2,
-         })
+    if WRAP_1:
+        ops.append(
+            {
+                "name": "f_wrap",
+                "fxn": lambda x, p1: f_wrap(x, p1),
+                "params": {},
+                "if_col": True,
+                "char": "",
+                "cost": 1.0,
+                "num_params": 2,
+            }
+        )
 
-    if WRAP_2: ops.append({'name': 'f_wrap_one_row', 'fxn': lambda x: f_wrap_one_row(x), 'params': {}, 'if_col': False,
-                           'char': '', 'cost': 1.0,
-                           'num_params': 1,
-                           })
+    if WRAP_2:
+        ops.append(
+            {
+                "name": "f_wrap_one_row",
+                "fxn": lambda x: f_wrap_one_row(x),
+                "params": {},
+                "if_col": False,
+                "char": "",
+                "cost": 1.0,
+                "num_params": 1,
+            }
+        )
     ops.append(
-        {'name': 'f_fold_header', 'fxn': lambda x, p1: f_fold_header(x, p1), 'params': {}, 'if_col': True, 'char': '',
-         'cost': 1.0, 'num_params': 2,
-         })
+        {
+            "name": "f_fold_header",
+            "fxn": lambda x, p1: f_fold_header(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
     ops.append(
-        {'name': 'f_unfold', 'fxn': lambda x, p1: f_unfold_header(x, p1), 'params': {}, 'if_col': True, 'char': '',
-         'cost': 1.0, 'num_params': 2,
-         })
-
-    ops.append(
-        {'name': 'f_drop', 'fxn': lambda x, p1: f_drop(x, p1), 'params': {}, 'if_col': True, 'char': '', 'cost': 1.0,
-         'num_params': 2,
-         })
-
-    ops.append(
-        {'name': 'f_split_w', 'fxn': lambda x, p1: f_split_w(x, p1), 'params': {}, 'if_col': True, 'char': 'whitespace',
-         'cost': 1.0, 'num_params': 2,
-         })
-    ops.append(
-        {'name': 'f_split_tab', 'fxn': lambda x, p1: f_split_tab(x, p1), 'params': {}, 'if_col': True, 'char': "\t",
-         'cost': 1.0, 'num_params': 2,
-         })
-
-    ops.append(
-        {'name': 'f_join_char', 'fxn': lambda x, p1, char="\t": f_join_char(x, p1, char), 'params': {2: '\'\\t\''},
-         'if_col': True, 'char': '\t', 'cost': 1.0,
-         'num_params': 3, })
-    ops.append(
-        {'name': 'f_join', 'fxn': lambda x, p1: f_join(x, p1), 'params': {}, 'if_col': True, 'char': '', 'cost': 1.0,
-         'num_params': 2,
-         })
-
-    ops.append(
-        {'name': 'f_move_to_end', 'fxn': lambda x, p1: f_move_to_end(x, p1), 'params': {}, 'if_col': True, 'char': '',
-         'cost': 1.0, 'num_params': 2,
-         })
-
-    ops.append(
-        {'name': 'f_delete', 'fxn': lambda x, p1: f_delete(x, p1), 'params': {}, 'if_col': True,
-         'char': '', 'cost': 1.0, 'num_params': 2,
-         })
-
-    ops.append({'name': 'f_delete_empty_cols', 'fxn': lambda x: f_delete_empty_cols(x), 'params': {}, 'if_col': False,
-                'char': '', 'cost': 1.0,
-                'num_params': 1, })
-
-    ops.append(
-        {'name': 'f_fill', 'fxn': lambda x, p1: f_fill(x, p1), 'params': {}, 'if_col': True, 'char': '', 'cost': 1.0,
-         'num_params': 2,
-         })
-
-    if WRAP_3: ops.append(
-        {'name': 'f_wrap_every_k_rows', 'fxn': lambda x: f_wrap_every_k_rows(x, 2), 'params': {1: '2'}, 'if_col': False,
-         'char': '', 'cost': 1.0, 'num_params': 1,
-         })
-    if WRAP_3: ops.append(
-        {'name': 'f_wrap_every_k_rows', 'fxn': lambda x: f_wrap_every_k_rows(x, 3), 'params': {1: '3'}, 'if_col': False,
-         'char': '', 'cost': 1.0, 'num_params': 1,
-         })
-    if WRAP_3: ops.append(
-        {'name': 'f_wrap_every_k_rows', 'fxn': lambda x: f_wrap_every_k_rows(x, 4), 'params': {1: '4'}, 'if_col': False,
-         'char': '', 'cost': 1.0, 'num_params': 1,
-         })
-    if WRAP_3: ops.append(
-        {'name': 'f_wrap_every_k_rows', 'fxn': lambda x: f_wrap_every_k_rows(x, 5), 'params': {1: '5'}, 'if_col': False,
-         'char': '', 'cost': 1.0, 'num_params': 1,
-         })
+        {
+            "name": "f_unfold",
+            "fxn": lambda x, p1: f_unfold_header(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
 
     ops.append(
-        {'name': 'f_divide_on_comma comma', 'fxn': lambda x, p1: f_divide_on_comma(x, p1), 'params': {}, 'if_col': True,
-         'char': '', 'cost': 1.0,
-         'num_params': 2, })
-    ops.append(
-        {'name': 'f_divide_on_all_digits', 'fxn': lambda x, p1: f_divide_on_all_digits(x, p1), 'params': {},
-         'if_col': True,
-         'char': '', 'cost': 1.0,
-         'num_params': 2, })
-    ops.append(
-        {'name': 'f_divide_on_all_alphabets', 'fxn': lambda x, p1: f_divide_on_all_alphabets(x, p1), 'params': {},
-         'if_col': True, 'char': '', 'cost': 1.0,
-         'num_params': 2, })
-    ops.append(
-        {'name': 'f_divide_on_alphanum', 'fxn': lambda x, p1: f_divide_on_alphanum(x, p1), 'params': {}, 'if_col': True,
-         'char': '', 'cost': 1.0,
-         'num_params': 2, })
-    ops.append({'name': 'f_divide_on_date', 'fxn': lambda x, p1: f_divide_on_date(x, p1), 'params': {}, 'if_col': True,
-                'char': '', 'cost': 1.0,
-                'num_params': 2, })
-    ops.append(
-        {'name': 'divide_on f_divide_on_dash', 'fxn': lambda x, p1: f_divide_on_dash(x, p1), 'params': {},
-         'if_col': True,
-         'char': '', 'cost': 1.0,
-         'num_params': 2, })
+        {
+            "name": "f_drop",
+            "fxn": lambda x, p1: f_drop(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
 
-    ops.append({'name': 'f_transpose', 'fxn': lambda x: f_transpose(x), 'params': {}, 'if_col': False, 'char': '',
-                'cost': 1.0, 'num_params': 1,
-                })
+    ops.append(
+        {
+            "name": "f_split_w",
+            "fxn": lambda x, p1: f_split_w(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "whitespace",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
+    ops.append(
+        {
+            "name": "f_split_tab",
+            "fxn": lambda x, p1: f_split_tab(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "\t",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
 
-    ops.append({'name': 'f_pivot', 'fxn': lambda x, c: f_pivot(x, c), 'params': {},
-                'if_col': True,
-                'char': '',
-                'cost': 1.0, 'num_params': 2,
-                })
-    ops.append({'name': 'f_unpivot', 'fxn': lambda x, c: f_unpivot(x, c), 'params': {},
-                'if_col': True,
-                'char': '',
-                'cost': 1.0, 'num_params': 2,
-                })
-    ops.append({'name': 'f_explode', 'fxn': lambda x, c: f_explode(x, c), 'params': {},
-                'if_col': True,
-                'char': '',
-                'cost': 1.0, 'num_params': 2,
-                })
-    for o in ['min', 'max', 'mean', 'sum', 'std']:
-        ops.append({'name': 'f_groupby', 'fxn': lambda x, c, o=o: f_groupby(x, c, o), 'params': {}, 'if_col': True,
-                    'char': '',
-                    'cost': 1.0, 'num_params': 3,
-                    })
-        ops.append({'name': 'f_groupby_add_all', 'fxn': lambda x, c, o=o: f_groupby_add_all(x, c, o), 'params': {},
-                    'if_col': True,
-                    'char': '',
-                    'cost': 1.0, 'num_params': 3,
-                    })
+    ops.append(
+        {
+            "name": "f_join_char",
+            "fxn": lambda x, p1, char="\t": f_join_char(x, p1, char),
+            "params": {2: "'\\t'"},
+            "if_col": True,
+            "char": "\t",
+            "cost": 1.0,
+            "num_params": 3,
+        }
+    )
+    ops.append(
+        {
+            "name": "f_join",
+            "fxn": lambda x, p1: f_join(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
+
+    ops.append(
+        {
+            "name": "f_move_to_end",
+            "fxn": lambda x, p1: f_move_to_end(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
+
+    ops.append(
+        {
+            "name": "f_delete",
+            "fxn": lambda x, p1: f_delete(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
+
+    ops.append(
+        {
+            "name": "f_delete_empty_cols",
+            "fxn": lambda x: f_delete_empty_cols(x),
+            "params": {},
+            "if_col": False,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 1,
+        }
+    )
+
+    ops.append(
+        {
+            "name": "f_fill",
+            "fxn": lambda x, p1: f_fill(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
+
+    if WRAP_3:
+        ops.append(
+            {
+                "name": "f_wrap_every_k_rows",
+                "fxn": lambda x: f_wrap_every_k_rows(x, 2),
+                "params": {1: "2"},
+                "if_col": False,
+                "char": "",
+                "cost": 1.0,
+                "num_params": 1,
+            }
+        )
+    if WRAP_3:
+        ops.append(
+            {
+                "name": "f_wrap_every_k_rows",
+                "fxn": lambda x: f_wrap_every_k_rows(x, 3),
+                "params": {1: "3"},
+                "if_col": False,
+                "char": "",
+                "cost": 1.0,
+                "num_params": 1,
+            }
+        )
+    if WRAP_3:
+        ops.append(
+            {
+                "name": "f_wrap_every_k_rows",
+                "fxn": lambda x: f_wrap_every_k_rows(x, 4),
+                "params": {1: "4"},
+                "if_col": False,
+                "char": "",
+                "cost": 1.0,
+                "num_params": 1,
+            }
+        )
+    if WRAP_3:
+        ops.append(
+            {
+                "name": "f_wrap_every_k_rows",
+                "fxn": lambda x: f_wrap_every_k_rows(x, 5),
+                "params": {1: "5"},
+                "if_col": False,
+                "char": "",
+                "cost": 1.0,
+                "num_params": 1,
+            }
+        )
+
+    ops.append(
+        {
+            "name": "f_divide_on_comma comma",
+            "fxn": lambda x, p1: f_divide_on_comma(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
+    ops.append(
+        {
+            "name": "f_divide_on_all_digits",
+            "fxn": lambda x, p1: f_divide_on_all_digits(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
+    ops.append(
+        {
+            "name": "f_divide_on_all_alphabets",
+            "fxn": lambda x, p1: f_divide_on_all_alphabets(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
+    ops.append(
+        {
+            "name": "f_divide_on_alphanum",
+            "fxn": lambda x, p1: f_divide_on_alphanum(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
+    ops.append(
+        {
+            "name": "f_divide_on_date",
+            "fxn": lambda x, p1: f_divide_on_date(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
+    ops.append(
+        {
+            "name": "divide_on f_divide_on_dash",
+            "fxn": lambda x, p1: f_divide_on_dash(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
+
+    ops.append(
+        {
+            "name": "f_transpose",
+            "fxn": lambda x: f_transpose(x),
+            "params": {},
+            "if_col": False,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 1,
+        }
+    )
+
+    ops.append(
+        {
+            "name": "f_pivot",
+            "fxn": lambda x, c: f_pivot(x, c),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
+    ops.append(
+        {
+            "name": "f_unpivot",
+            "fxn": lambda x, c: f_unpivot(x, c),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
+    ops.append(
+        {
+            "name": "f_explode",
+            "fxn": lambda x, c: f_explode(x, c),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
+    for o in ["min", "max", "mean", "sum", "std"]:
+        ops.append(
+            {
+                "name": "f_groupby",
+                "fxn": lambda x, c, o=o: f_groupby(x, c, o),
+                "params": {},
+                "if_col": True,
+                "char": "",
+                "cost": 1.0,
+                "num_params": 3,
+            }
+        )
+        ops.append(
+            {
+                "name": "f_groupby_add_all",
+                "fxn": lambda x, c, o=o: f_groupby_add_all(x, c, o),
+                "params": {},
+                "if_col": True,
+                "char": "",
+                "cost": 1.0,
+                "num_params": 3,
+            }
+        )
     # ops.append(
     #     {'name': 'f_swap_columns', 'fxn': lambda x, p1, p2: f_swap_columns(x, p1, p2), 'params': {}, 'if_col': True, 'char': '',
     #      'cost': 1.0, 'num_params': 3,
     #      })
 
-
     for s in delimiters:
         ops.append(
-            {'name': "f_split", 'fxn': lambda x, p1, s=s: f_split(x, p1, s), 'params': {2: "\'%s\'" % (s)},
-             'if_col': True,
-             'char': s, 'cost': 1.0, 'num_params': 3,
-             })
-        ops.append({'name': "f_split", 'fxn': lambda x, p1, s=s: f_split(x, p1, s, True),
-                    'params': {2: "\'%s\'" % (s), 3: 'True'}, 'if_col': True, 'char': s, 'cost': 1.0,
-                    'num_params': 4,
-                    })
-        ops.append({'name': "f_join_char", 'fxn': lambda x, p1, char=s: f_join_char(x, p1, char),
-                    'params': {2: "\'%s\'" % (s)}, 'if_col': True, 'char': s, 'cost': 1.0,
-                    'num_params': 3,
-                    })
+            {
+                "name": "f_split",
+                "fxn": lambda x, p1, s=s: f_split(x, p1, s),
+                "params": {2: "'%s'" % (s)},
+                "if_col": True,
+                "char": s,
+                "cost": 1.0,
+                "num_params": 3,
+            }
+        )
         ops.append(
-            {'name': "f_split_first", 'fxn': lambda x, p1, s=s: f_split_first(x, p1, s),
-             'params': {2: "\'%s\'" % (s)},
-             'if_col': True, 'char': s, 'cost': 1.0,
-             'num_params': 3, })
+            {
+                "name": "f_split",
+                "fxn": lambda x, p1, s=s: f_split(x, p1, s, True),
+                "params": {2: "'%s'" % (s), 3: "True"},
+                "if_col": True,
+                "char": s,
+                "cost": 1.0,
+                "num_params": 4,
+            }
+        )
+        ops.append(
+            {
+                "name": "f_join_char",
+                "fxn": lambda x, p1, char=s: f_join_char(x, p1, char),
+                "params": {2: "'%s'" % (s)},
+                "if_col": True,
+                "char": s,
+                "cost": 1.0,
+                "num_params": 3,
+            }
+        )
+        ops.append(
+            {
+                "name": "f_split_first",
+                "fxn": lambda x, p1, s=s: f_split_first(x, p1, s),
+                "params": {2: "'%s'" % (s)},
+                "if_col": True,
+                "char": s,
+                "cost": 1.0,
+                "num_params": 3,
+            }
+        )
 
     return ops
+
 
 def add_ops_full():
     ops = list()
@@ -1526,13 +2120,28 @@ def add_ops_full():
     #     {'name': 'f_wrap', 'fxn': lambda x, p1: f_wrap(x, p1), 'params': {}, 'if_col': True, 'char': '', 'cost': 1.0,
     #      'num_params': 2,
     #      })
-    ops.append({'name': 'f_transpose', 'fxn': lambda x: f_transpose(x), 'params': {}, 'if_col': False, 'char': '',
-                'cost': 1.0, 'num_params': 1,
-                })
-    ops.append({'name': 'f_groupby', 'fxn': lambda x, c, o='min': f_groupby(x, c, o), 'params': {}, 'if_col': True,
-                'char': '',
-                'cost': 1.0, 'num_params': 3,
-                })
+    ops.append(
+        {
+            "name": "f_transpose",
+            "fxn": lambda x: f_transpose(x),
+            "params": {},
+            "if_col": False,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 1,
+        }
+    )
+    ops.append(
+        {
+            "name": "f_groupby",
+            "fxn": lambda x, c, o="min": f_groupby(x, c, o),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 3,
+        }
+    )
     # ops.append(
     #     {'name': 'f_swap_columns', 'fxn': lambda x, p1, p2: f_swap_columns(x, p1, p2), 'params': {}, 'if_col': True, 'char': '',
     #      'cost': 1.0, 'num_params': 3,
@@ -1540,45 +2149,104 @@ def add_ops_full():
 
     return ops
 
+
 def add_ops_row():
     ops = list()
 
     ops.append(
-        {'name': 'f_fold', 'fxn': lambda x, p1: f_fold(x, p1), 'params': {}, 'if_col': True, 'char': '', 'cost': 1.0,
-         'num_params': 2,
-         })
+        {
+            "name": "f_fold",
+            "fxn": lambda x, p1: f_fold(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
 
-    if WRAP_1: ops.append(
-        {'name': 'f_wrap', 'fxn': lambda x, p1: f_wrap(x, p1), 'params': {}, 'if_col': True, 'char': '', 'cost': 1.0,
-         'num_params': 2,
-         })
+    if WRAP_1:
+        ops.append(
+            {
+                "name": "f_wrap",
+                "fxn": lambda x, p1: f_wrap(x, p1),
+                "params": {},
+                "if_col": True,
+                "char": "",
+                "cost": 1.0,
+                "num_params": 2,
+            }
+        )
 
-    if WRAP_2: ops.append({'name': 'f_wrap_one_row', 'fxn': lambda x: f_wrap_one_row(x), 'params': {}, 'if_col': False,
-                           'char': '', 'cost': 1.0,
-                           'num_params': 1,
-                           })
+    if WRAP_2:
+        ops.append(
+            {
+                "name": "f_wrap_one_row",
+                "fxn": lambda x: f_wrap_one_row(x),
+                "params": {},
+                "if_col": False,
+                "char": "",
+                "cost": 1.0,
+                "num_params": 1,
+            }
+        )
     ops.append(
-        {'name': 'f_drop', 'fxn': lambda x, p1: f_drop(x, p1), 'params': {}, 'if_col': True, 'char': '', 'cost': 1.0,
-         'num_params': 2,
-         })
+        {
+            "name": "f_drop",
+            "fxn": lambda x, p1: f_drop(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
 
     ops.append(
-        {'name': 'f_split_w', 'fxn': lambda x, p1: f_split_w(x, p1), 'params': {}, 'if_col': True, 'char': 'whitespace',
-         'cost': 1.0, 'num_params': 2,
-         })
+        {
+            "name": "f_split_w",
+            "fxn": lambda x, p1: f_split_w(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "whitespace",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
     ops.append(
-        {'name': 'f_split_tab', 'fxn': lambda x, p1: f_split_tab(x, p1), 'params': {}, 'if_col': True, 'char': "\t",
-         'cost': 1.0, 'num_params': 2,
-         })
+        {
+            "name": "f_split_tab",
+            "fxn": lambda x, p1: f_split_tab(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "\t",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
     #
     ops.append(
-        {'name': 'f_join_char', 'fxn': lambda x, p1, char="\t": f_join_char(x, p1, char), 'params': {2: '\'\\t\''},
-         'if_col': True, 'char': '\t', 'cost': 1.0,
-         'num_params': 3, })
+        {
+            "name": "f_join_char",
+            "fxn": lambda x, p1, char="\t": f_join_char(x, p1, char),
+            "params": {2: "'\\t'"},
+            "if_col": True,
+            "char": "\t",
+            "cost": 1.0,
+            "num_params": 3,
+        }
+    )
     ops.append(
-        {'name': 'f_join', 'fxn': lambda x, p1: f_join(x, p1), 'params': {}, 'if_col': True, 'char': '', 'cost': 1.0,
-         'num_params': 2,
-         })
+        {
+            "name": "f_join",
+            "fxn": lambda x, p1: f_join(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
     #
     # ops.append(
     #     {'name': 'f_move_to_end', 'fxn': lambda x, p1: f_move_to_end(x, p1), 'params': {}, 'if_col': True, 'char': '',
@@ -1586,18 +2254,40 @@ def add_ops_row():
     #      })
     #
     ops.append(
-        {'name': 'f_delete', 'fxn': lambda x, p1: f_delete(x, p1), 'params': {}, 'if_col': True,
-         'char': '', 'cost': 1.0, 'num_params': 2,
-         })
-    #
-    ops.append({'name': 'f_delete_empty_cols', 'fxn': lambda x: f_delete_empty_cols(x), 'params': {}, 'if_col': False,
-                'char': '', 'cost': 1.0,
-                'num_params': 1, })
+        {
+            "name": "f_delete",
+            "fxn": lambda x, p1: f_delete(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
     #
     ops.append(
-        {'name': 'f_fill', 'fxn': lambda x, p1: f_fill(x, p1), 'params': {}, 'if_col': True, 'char': '', 'cost': 1.0,
-         'num_params': 2,
-         })
+        {
+            "name": "f_delete_empty_cols",
+            "fxn": lambda x: f_delete_empty_cols(x),
+            "params": {},
+            "if_col": False,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 1,
+        }
+    )
+    #
+    ops.append(
+        {
+            "name": "f_fill",
+            "fxn": lambda x, p1: f_fill(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
     #
     # if WRAP_3: ops.append(
     #     {'name': 'f_wrap_every_k_rows', 'fxn': lambda x: f_wrap_every_k_rows(x, 2), 'params': {1: '2'}, 'if_col': False,
@@ -1617,9 +2307,16 @@ def add_ops_row():
     #      })
     #
     ops.append(
-        {'name': 'f_divide_on_comma comma', 'fxn': lambda x, p1: f_divide_on_comma(x, p1), 'params': {}, 'if_col': True,
-         'char': '', 'cost': 1.0,
-         'num_params': 2, })
+        {
+            "name": "f_divide_on_comma comma",
+            "fxn": lambda x, p1: f_divide_on_comma(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
     # ops.append(
     #     {'name': 'f_divide_on_all_digits', 'fxn': lambda x, p1: f_divide_on_all_digits(x, p1), 'params': {},
     #      'if_col': True,
@@ -1630,40 +2327,95 @@ def add_ops_row():
     #      'if_col': True, 'char': '', 'cost': 1.0,
     #      'num_params': 2, })
     ops.append(
-        {'name': 'f_divide_on_alphanum', 'fxn': lambda x, p1: f_divide_on_alphanum(x, p1), 'params': {}, 'if_col': True,
-         'char': '', 'cost': 1.0,
-         'num_params': 2, })
-    ops.append({'name': 'f_divide_on_date', 'fxn': lambda x, p1: f_divide_on_date(x, p1), 'params': {}, 'if_col': True,
-                'char': '', 'cost': 1.0,
-                'num_params': 2, })
+        {
+            "name": "f_divide_on_alphanum",
+            "fxn": lambda x, p1: f_divide_on_alphanum(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
     ops.append(
-        {'name': 'divide_on f_divide_on_dash', 'fxn': lambda x, p1: f_divide_on_dash(x, p1), 'params': {},
-         'if_col': True,
-         'char': '', 'cost': 1.0,
-         'num_params': 2, })
+        {
+            "name": "f_divide_on_date",
+            "fxn": lambda x, p1: f_divide_on_date(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
+    ops.append(
+        {
+            "name": "divide_on f_divide_on_dash",
+            "fxn": lambda x, p1: f_divide_on_dash(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
 
-    ops.append({'name': 'f_transpose', 'fxn': lambda x: f_transpose(x), 'params': {}, 'if_col': False, 'char': '',
-                'cost': 1.0, 'num_params': 1,
-                })
+    ops.append(
+        {
+            "name": "f_transpose",
+            "fxn": lambda x: f_transpose(x),
+            "params": {},
+            "if_col": False,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 1,
+        }
+    )
     for s in delimiters:
         ops.append(
-            {'name': "f_split", 'fxn': lambda x, p1, s=s: f_split(x, p1, s), 'params': {2: "\'%s\'" % (s)},
-             'if_col': True,
-             'char': s, 'cost': 1.0, 'num_params': 3,
-             })
-        ops.append({'name': "f_split", 'fxn': lambda x, p1, s=s: f_split(x, p1, s, True),
-                    'params': {2: "\'%s\'" % (s), 3: 'True'}, 'if_col': True, 'char': s, 'cost': 1.0,
-                    'num_params': 4,
-                    })
-        ops.append({'name': "f_join_char", 'fxn': lambda x, p1, char=s: f_join_char(x, p1, char),
-                    'params': {2: "\'%s\'" % (s)}, 'if_col': True, 'char': s, 'cost': 1.0,
-                    'num_params': 3,
-                    })
+            {
+                "name": "f_split",
+                "fxn": lambda x, p1, s=s: f_split(x, p1, s),
+                "params": {2: "'%s'" % (s)},
+                "if_col": True,
+                "char": s,
+                "cost": 1.0,
+                "num_params": 3,
+            }
+        )
         ops.append(
-            {'name': "f_split_first", 'fxn': lambda x, p1, s=s: f_split_first(x, p1, s),
-             'params': {2: "\'%s\'" % (s)},
-             'if_col': True, 'char': s, 'cost': 1.0,
-             'num_params': 3, })
+            {
+                "name": "f_split",
+                "fxn": lambda x, p1, s=s: f_split(x, p1, s, True),
+                "params": {2: "'%s'" % (s), 3: "True"},
+                "if_col": True,
+                "char": s,
+                "cost": 1.0,
+                "num_params": 4,
+            }
+        )
+        ops.append(
+            {
+                "name": "f_join_char",
+                "fxn": lambda x, p1, char=s: f_join_char(x, p1, char),
+                "params": {2: "'%s'" % (s)},
+                "if_col": True,
+                "char": s,
+                "cost": 1.0,
+                "num_params": 3,
+            }
+        )
+        ops.append(
+            {
+                "name": "f_split_first",
+                "fxn": lambda x, p1, s=s: f_split_first(x, p1, s),
+                "params": {2: "'%s'" % (s)},
+                "if_col": True,
+                "char": s,
+                "cost": 1.0,
+                "num_params": 3,
+            }
+        )
 
     return ops
 
@@ -1688,29 +2440,64 @@ def add_ops_column():
     #
 
     ops.append(
-        {'name': 'f_remove_stopwords', 'fxn': lambda x, p1: f_remove_stopwords(x, p1), 'params': {}, 'if_col': True,
-         'char': '', 'cost': 1.0, 'num_params': 2,
-         })
+        {
+            "name": "f_remove_stopwords",
+            "fxn": lambda x, p1: f_remove_stopwords(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
 
     ops.append(
-        {'name': 'f_remove_punctuation', 'fxn': lambda x, p1: f_remove_punctuation(x, p1), 'params': {}, 'if_col': True,
-         'char': '', 'cost': 1.0, 'num_params': 2,
-         })
+        {
+            "name": "f_remove_punctuation",
+            "fxn": lambda x, p1: f_remove_punctuation(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
 
     ops.append(
-        {'name': 'f_remove_numeric', 'fxn': lambda x, p1: f_remove_numeric(x, p1), 'params': {}, 'if_col': True,
-         'char': '', 'cost': 1.0, 'num_params': 2,
-         })
+        {
+            "name": "f_remove_numeric",
+            "fxn": lambda x, p1: f_remove_numeric(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
 
     ops.append(
-        {'name': 'f_remove_url', 'fxn': lambda x, p1: f_remove_url(x, p1), 'params': {}, 'if_col': True,
-         'char': '', 'cost': 1.0, 'num_params': 2,
-         })
+        {
+            "name": "f_remove_url",
+            "fxn": lambda x, p1: f_remove_url(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
 
     ops.append(
-        {'name': 'f_remove_html_tags', 'fxn': lambda x, p1: f_remove_html_tags(x, p1), 'params': {}, 'if_col': True,
-         'char': '', 'cost': 1.0, 'num_params': 2,
-         })
+        {
+            "name": "f_remove_html_tags",
+            "fxn": lambda x, p1: f_remove_html_tags(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
 
     # ops.append(
     #     {'name': 'f_spell_correction', 'fxn': lambda x, p1: f_spell_correction(x, p1), 'params': {}, 'if_col': True,
@@ -1718,42 +2505,98 @@ def add_ops_column():
     #      })
 
     ops.append(
-        {'name': 'f_lemmatization', 'fxn': lambda x, p1: f_lemmatization(x, p1), 'params': {}, 'if_col': True,
-         'char': '', 'cost': 1.0, 'num_params': 2,
-         })
+        {
+            "name": "f_lemmatization",
+            "fxn": lambda x, p1: f_lemmatization(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
 
     ops.append(
-        {'name': 'f_lower', 'fxn': lambda x, p1: f_lower(x, p1), 'params': {}, 'if_col': True,
-         'char': '', 'cost': 1.0, 'num_params': 2,
-         })
+        {
+            "name": "f_lower",
+            "fxn": lambda x, p1: f_lower(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
 
     ops.append(
-        {'name': 'f_unfold', 'fxn': lambda x, p1: f_unfold_header(x, p1), 'params': {}, 'if_col': True, 'char': '',
-         'cost': 1.0, 'num_params': 2,
-         })
+        {
+            "name": "f_unfold",
+            "fxn": lambda x, p1: f_unfold_header(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
 
     ops.append(
-        {'name': 'f_drop', 'fxn': lambda x, p1: f_drop(x, p1), 'params': {}, 'if_col': True, 'char': '', 'cost': 0.5,
-         'num_params': 2,
-         })
+        {
+            "name": "f_drop",
+            "fxn": lambda x, p1: f_drop(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 0.5,
+            "num_params": 2,
+        }
+    )
 
     ops.append(
-        {'name': 'f_split_w', 'fxn': lambda x, p1: f_split_w(x, p1), 'params': {}, 'if_col': True, 'char': 'whitespace',
-         'cost': 1.0, 'num_params': 2,
-         })
+        {
+            "name": "f_split_w",
+            "fxn": lambda x, p1: f_split_w(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "whitespace",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
     ops.append(
-        {'name': 'f_split_tab', 'fxn': lambda x, p1: f_split_tab(x, p1), 'params': {}, 'if_col': True, 'char': "\t",
-         'cost': 1.0, 'num_params': 2,
-         })
+        {
+            "name": "f_split_tab",
+            "fxn": lambda x, p1: f_split_tab(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "\t",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
 
     ops.append(
-        {'name': 'f_join_char', 'fxn': lambda x, p1, char="\t": f_join_char(x, p1, char), 'params': {2: '\'\\t\''},
-         'if_col': True, 'char': '\t', 'cost': 1.0,
-         'num_params': 3, })
+        {
+            "name": "f_join_char",
+            "fxn": lambda x, p1, char="\t": f_join_char(x, p1, char),
+            "params": {2: "'\\t'"},
+            "if_col": True,
+            "char": "\t",
+            "cost": 1.0,
+            "num_params": 3,
+        }
+    )
     ops.append(
-        {'name': 'f_join', 'fxn': lambda x, p1: f_join(x, p1), 'params': {}, 'if_col': True, 'char': '', 'cost': 1.0,
-         'num_params': 2,
-         })
+        {
+            "name": "f_join",
+            "fxn": lambda x, p1: f_join(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
 
     # ops.append(
     #     {'name': 'f_move_to_end', 'fxn': lambda x, p1: f_move_to_end(x, p1), 'params': {}, 'if_col': True, 'char': '',
@@ -1761,18 +2604,32 @@ def add_ops_column():
     #      })
 
     ops.append(
-        {'name': 'f_delete', 'fxn': lambda x, p1: f_delete(x, p1), 'params': {}, 'if_col': True,
-         'char': '', 'cost': 1.0, 'num_params': 2,
-         })
+        {
+            "name": "f_delete",
+            "fxn": lambda x, p1: f_delete(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
 
     # ops.append({'name': 'f_delete_empty_cols', 'fxn': lambda x: f_delete_empty_cols(x), 'params': {}, 'if_col': False,
     #             'char': '', 'cost': 1.0,
     #             'num_params': 1, })
 
     ops.append(
-        {'name': 'f_fill', 'fxn': lambda x, p1: f_fill(x, p1), 'params': {}, 'if_col': True, 'char': '', 'cost': 1.0,
-         'num_params': 2,
-         })
+        {
+            "name": "f_fill",
+            "fxn": lambda x, p1: f_fill(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
 
     # if WRAP_3: ops.append(
     #     {'name': 'f_wrap_every_k_rows', 'fxn': lambda x: f_wrap_every_k_rows(x, 2), 'params': {1: '2'}, 'if_col': False,
@@ -1812,10 +2669,16 @@ def add_ops_column():
     #             'char': '', 'cost': 1.0,
     #             'num_params': 2, })
     ops.append(
-        {'name': 'divide_on f_divide_on_dash', 'fxn': lambda x, p1: f_divide_on_dash(x, p1), 'params': {},
-         'if_col': True,
-         'char': '', 'cost': 1.0,
-         'num_params': 2, })
+        {
+            "name": "divide_on f_divide_on_dash",
+            "fxn": lambda x, p1: f_divide_on_dash(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
 
     # ops.append({'name': 'f_transpose', 'fxn': lambda x: f_transpose(x), 'params': {}, 'if_col': False, 'char': '',
     #             'cost': 1.0, 'num_params': 1,
@@ -1823,23 +2686,49 @@ def add_ops_column():
 
     for s in delimiters:
         ops.append(
-            {'name': "f_split", 'fxn': lambda x, p1, s=s: f_split(x, p1, s), 'params': {2: "\'%s\'" % (s)},
-             'if_col': True,
-             'char': s, 'cost': 1.0, 'num_params': 3,
-             })
-        ops.append({'name': "f_split", 'fxn': lambda x, p1, s=s: f_split(x, p1, s, True),
-                    'params': {2: "\'%s\'" % (s), 3: 'True'}, 'if_col': True, 'char': s, 'cost': 1.0,
-                    'num_params': 4,
-                    })
-        ops.append({'name': "f_join_char", 'fxn': lambda x, p1, char=s: f_join_char(x, p1, char),
-                    'params': {2: "\'%s\'" % (s)}, 'if_col': True, 'char': s, 'cost': 1.0,
-                    'num_params': 3,
-                    })
+            {
+                "name": "f_split",
+                "fxn": lambda x, p1, s=s: f_split(x, p1, s),
+                "params": {2: "'%s'" % (s)},
+                "if_col": True,
+                "char": s,
+                "cost": 1.0,
+                "num_params": 3,
+            }
+        )
         ops.append(
-            {'name': "f_split_first", 'fxn': lambda x, p1, s=s: f_split_first(x, p1, s),
-             'params': {2: "\'%s\'" % (s)},
-             'if_col': True, 'char': s, 'cost': 1.0,
-             'num_params': 3, })
+            {
+                "name": "f_split",
+                "fxn": lambda x, p1, s=s: f_split(x, p1, s, True),
+                "params": {2: "'%s'" % (s), 3: "True"},
+                "if_col": True,
+                "char": s,
+                "cost": 1.0,
+                "num_params": 4,
+            }
+        )
+        ops.append(
+            {
+                "name": "f_join_char",
+                "fxn": lambda x, p1, char=s: f_join_char(x, p1, char),
+                "params": {2: "'%s'" % (s)},
+                "if_col": True,
+                "char": s,
+                "cost": 1.0,
+                "num_params": 3,
+            }
+        )
+        ops.append(
+            {
+                "name": "f_split_first",
+                "fxn": lambda x, p1, s=s: f_split_first(x, p1, s),
+                "params": {2: "'%s'" % (s)},
+                "if_col": True,
+                "char": s,
+                "cost": 1.0,
+                "num_params": 3,
+            }
+        )
         # ops.append(
         #     {'name': 'f_count_s', 'fxn': lambda x, p1, s=s: f_count_s(x, p1, s),
         #      'params': {2: "\'%s\'" % (s)},
@@ -1859,68 +2748,135 @@ def add_ops_column_text_to_numeric():
     global seen_values_for_table_col
     seen_values_for_table_col = {}
     ops.append(
-        {'name': 'f_len', 'fxn': lambda x, p1: f_len(x, p1), 'params': {}, 'if_col': True, 'char': '', 'cost': 1.0,
-         'num_params': 2,
-         })
+        {
+            "name": "f_len",
+            "fxn": lambda x, p1: f_len(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
     ops.append(
-        {'name': 'f_number_of_words', 'fxn': lambda x, p1: f_number_of_words(x, p1), 'params': {}, 'if_col': True,
-         'char': '', 'cost': 1.0,
-         'num_params': 2,
-         })
+        {
+            "name": "f_number_of_words",
+            "fxn": lambda x, p1: f_number_of_words(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
 
     ops.append(
-        {'name': 'f_number_of_sentences', 'fxn': lambda x, p1: f_number_of_sentences(x, p1), 'params': {},
-         'if_col': True, 'char': '', 'cost': 1.0,
-         'num_params': 2,
-         })
+        {
+            "name": "f_number_of_sentences",
+            "fxn": lambda x, p1: f_number_of_sentences(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
 
     ops.append(
-        {'name': 'f_number_of_rows', 'fxn': lambda x, p1: f_number_of_rows(x, p1), 'params': {}, 'if_col': True,
-         'char': '', 'cost': 1.0,
-         'num_params': 2,
-         })
+        {
+            "name": "f_number_of_rows",
+            "fxn": lambda x, p1: f_number_of_rows(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
 
     ops.append(
-        {'name': 'f_number_of_questions', 'fxn': lambda x, p1: f_number_of_questions(x, p1), 'params': {},
-         'if_col': True, 'char': '', 'cost': 1.0,
-         'num_params': 2,
-         })
+        {
+            "name": "f_number_of_questions",
+            "fxn": lambda x, p1: f_number_of_questions(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
 
     ops.append(
-        {'name': 'f_number_of_emails', 'fxn': lambda x, p1: f_number_of_emails(x, p1), 'params': {}, 'if_col': True,
-         'char': '', 'cost': 1.0,
-         'num_params': 2,
-         })
+        {
+            "name": "f_number_of_emails",
+            "fxn": lambda x, p1: f_number_of_emails(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
 
     ops.append(
-        {'name': 'f_number_of_urls', 'fxn': lambda x, p1: f_number_of_urls(x, p1), 'params': {}, 'if_col': True,
-         'char': '', 'cost': 1.0,
-         'num_params': 2,
-         })
+        {
+            "name": "f_number_of_urls",
+            "fxn": lambda x, p1: f_number_of_urls(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
 
     ops.append(
-        {'name': 'f_number_of_ips', 'fxn': lambda x, p1: f_number_of_ips(x, p1), 'params': {}, 'if_col': True,
-         'char': '', 'cost': 1.0,
-         'num_params': 2,
-         })
+        {
+            "name": "f_number_of_ips",
+            "fxn": lambda x, p1: f_number_of_ips(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
 
     ops.append(
-        {'name': 'f_number_of_phone_numbers', 'fxn': lambda x, p1: f_number_of_phone_numbers(x, p1), 'params': {},
-         'if_col': True, 'char': '', 'cost': 1.0,
-         'num_params': 2,
-         })
+        {
+            "name": "f_number_of_phone_numbers",
+            "fxn": lambda x, p1: f_number_of_phone_numbers(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
 
     ops.append(
-        {'name': 'f_number_of_punctuations', 'fxn': lambda x, p1: f_number_of_punctuations(x, p1), 'params': {},
-         'if_col': True, 'char': '', 'cost': 1.0,
-         'num_params': 2,
-         })
+        {
+            "name": "f_number_of_punctuations",
+            "fxn": lambda x, p1: f_number_of_punctuations(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
 
     ops.append(
-        {'name': 'f_number_of_stopwords', 'fxn': lambda x, p1: f_number_of_stopwords(x, p1), 'params': {},
-         'if_col': True, 'char': '', 'cost': 1.0,
-         'num_params': 2,
-         })
+        {
+            "name": "f_number_of_stopwords",
+            "fxn": lambda x, p1: f_number_of_stopwords(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
 
     # for s in delimiters:
     #     ops.append(
@@ -1941,67 +2897,124 @@ def add_ops_column_text_to_class():
     ops = list()
 
     ops.append(
-        {'name': 'f_contains_multiple_words', 'fxn': lambda x, p1: f_contains_multiple_words(x, p1), 'params': {},
-         'if_col': True,
-         'char': '', 'cost': 1.0,
-         'num_params': 2,
-         })
+        {
+            "name": "f_contains_multiple_words",
+            "fxn": lambda x, p1: f_contains_multiple_words(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
 
     ops.append(
-        {'name': 'f_contains_multiple_sentences', 'fxn': lambda x, p1: f_contains_multiple_sentences(x, p1),
-         'params': {},
-         'if_col': True, 'char': '', 'cost': 1.0,
-         'num_params': 2,
-         })
+        {
+            "name": "f_contains_multiple_sentences",
+            "fxn": lambda x, p1: f_contains_multiple_sentences(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
 
     ops.append(
-        {'name': 'f_contains_multiple_rows', 'fxn': lambda x, p1: f_contains_multiple_rows(x, p1), 'params': {},
-         'if_col': True,
-         'char': '', 'cost': 1.0,
-         'num_params': 2,
-         })
+        {
+            "name": "f_contains_multiple_rows",
+            "fxn": lambda x, p1: f_contains_multiple_rows(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
 
     ops.append(
-        {'name': 'f_contains_a_questions', 'fxn': lambda x, p1: f_contains_a_questions(x, p1), 'params': {},
-         'if_col': True, 'char': '', 'cost': 1.0,
-         'num_params': 2,
-         })
+        {
+            "name": "f_contains_a_questions",
+            "fxn": lambda x, p1: f_contains_a_questions(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
 
     ops.append(
-        {'name': 'f_contains_an_email', 'fxn': lambda x, p1: f_contains_an_email(x, p1), 'params': {}, 'if_col': True,
-         'char': '', 'cost': 1.0,
-         'num_params': 2,
-         })
+        {
+            "name": "f_contains_an_email",
+            "fxn": lambda x, p1: f_contains_an_email(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
 
     ops.append(
-        {'name': 'f_contains_an_url', 'fxn': lambda x, p1: f_contains_an_url(x, p1), 'params': {}, 'if_col': True,
-         'char': '', 'cost': 1.0,
-         'num_params': 2,
-         })
+        {
+            "name": "f_contains_an_url",
+            "fxn": lambda x, p1: f_contains_an_url(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
 
     ops.append(
-        {'name': 'f_contains_an_ip', 'fxn': lambda x, p1: f_contains_an_ip(x, p1), 'params': {}, 'if_col': True,
-         'char': '', 'cost': 1.0,
-         'num_params': 2,
-         })
+        {
+            "name": "f_contains_an_ip",
+            "fxn": lambda x, p1: f_contains_an_ip(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
 
     ops.append(
-        {'name': 'f_contains_a_phone_number', 'fxn': lambda x, p1: f_contains_a_phone_number(x, p1), 'params': {},
-         'if_col': True, 'char': '', 'cost': 1.0,
-         'num_params': 2,
-         })
+        {
+            "name": "f_contains_a_phone_number",
+            "fxn": lambda x, p1: f_contains_a_phone_number(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
 
     ops.append(
-        {'name': 'f_contains_a_punctuation', 'fxn': lambda x, p1: f_contains_a_punctuation(x, p1), 'params': {},
-         'if_col': True, 'char': '', 'cost': 1.0,
-         'num_params': 2,
-         })
+        {
+            "name": "f_contains_a_punctuation",
+            "fxn": lambda x, p1: f_contains_a_punctuation(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
 
     ops.append(
-        {'name': 'f_contains_a_stopword', 'fxn': lambda x, p1: f_contains_a_stopword(x, p1), 'params': {},
-         'if_col': True, 'char': '', 'cost': 1.0,
-         'num_params': 2,
-         })
+        {
+            "name": "f_contains_a_stopword",
+            "fxn": lambda x, p1: f_contains_a_stopword(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
 
     # for s in delimiters:
     #     ops.append(
@@ -2022,103 +3035,240 @@ def add_ops_plus():
     ops = list()
 
     ops.append(
-        {'name': 'f_remove_stopwords', 'fxn': lambda x, p1: f_remove_stopwords(x, p1), 'params': {}, 'if_col': True,
-         'char': '', 'cost': 1.0, 'num_params': 2,
-         })
+        {
+            "name": "f_remove_stopwords",
+            "fxn": lambda x, p1: f_remove_stopwords(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
 
     ops.append(
-        {'name': 'f_remove_punctuation', 'fxn': lambda x, p1: f_remove_punctuation(x, p1), 'params': {}, 'if_col': True,
-         'char': '', 'cost': 1.0, 'num_params': 2,
-         })
+        {
+            "name": "f_remove_punctuation",
+            "fxn": lambda x, p1: f_remove_punctuation(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
 
     ops.append(
-        {'name': 'f_remove_numeric', 'fxn': lambda x, p1: f_remove_numeric(x, p1), 'params': {}, 'if_col': True,
-         'char': '', 'cost': 1.0, 'num_params': 2,
-         })
+        {
+            "name": "f_remove_numeric",
+            "fxn": lambda x, p1: f_remove_numeric(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
 
     ops.append(
-        {'name': 'f_remove_url', 'fxn': lambda x, p1: f_remove_url(x, p1), 'params': {}, 'if_col': True,
-         'char': '', 'cost': 1.0, 'num_params': 2,
-         })
+        {
+            "name": "f_remove_url",
+            "fxn": lambda x, p1: f_remove_url(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
 
     ops.append(
-        {'name': 'f_remove_html_tags', 'fxn': lambda x, p1: f_remove_html_tags(x, p1), 'params': {}, 'if_col': True,
-         'char': '', 'cost': 1.0, 'num_params': 2,
-         })
+        {
+            "name": "f_remove_html_tags",
+            "fxn": lambda x, p1: f_remove_html_tags(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
 
     ops.append(
-        {'name': 'f_lemmatization', 'fxn': lambda x, p1: f_lemmatization(x, p1), 'params': {}, 'if_col': True,
-         'char': '', 'cost': 1.0, 'num_params': 2,
-         })
+        {
+            "name": "f_lemmatization",
+            "fxn": lambda x, p1: f_lemmatization(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
 
     ops.append(
-        {'name': 'f_lower', 'fxn': lambda x, p1: f_lower(x, p1), 'params': {}, 'if_col': True,
-         'char': '', 'cost': 1.0, 'num_params': 2,
-         })
+        {
+            "name": "f_lower",
+            "fxn": lambda x, p1: f_lower(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
 
     ops.append(
-        {'name': 'f_unfold', 'fxn': lambda x, p1: f_unfold_header(x, p1), 'params': {}, 'if_col': True, 'char': '',
-         'cost': 1.0, 'num_params': 2,
-         })
+        {
+            "name": "f_unfold",
+            "fxn": lambda x, p1: f_unfold_header(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
 
     ops.append(
-        {'name': 'f_drop', 'fxn': lambda x, p1: f_drop(x, p1), 'params': {}, 'if_col': True, 'char': '', 'cost': 0.5,
-         'num_params': 2,
-         })
+        {
+            "name": "f_drop",
+            "fxn": lambda x, p1: f_drop(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 0.5,
+            "num_params": 2,
+        }
+    )
 
     ops.append(
-        {'name': 'f_split_w', 'fxn': lambda x, p1: f_split_w(x, p1), 'params': {}, 'if_col': True, 'char': 'whitespace',
-         'cost': 1.0, 'num_params': 2,
-         })
+        {
+            "name": "f_split_w",
+            "fxn": lambda x, p1: f_split_w(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "whitespace",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
     ops.append(
-        {'name': 'f_split_tab', 'fxn': lambda x, p1: f_split_tab(x, p1), 'params': {}, 'if_col': True, 'char': "\t",
-         'cost': 1.0, 'num_params': 2,
-         })
+        {
+            "name": "f_split_tab",
+            "fxn": lambda x, p1: f_split_tab(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "\t",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
 
     ops.append(
-        {'name': 'f_join_char', 'fxn': lambda x, p1, char="\t": f_join_char(x, p1, char), 'params': {2: '\'\\t\''},
-         'if_col': True, 'char': '\t', 'cost': 1.0,
-         'num_params': 3, })
+        {
+            "name": "f_join_char",
+            "fxn": lambda x, p1, char="\t": f_join_char(x, p1, char),
+            "params": {2: "'\\t'"},
+            "if_col": True,
+            "char": "\t",
+            "cost": 1.0,
+            "num_params": 3,
+        }
+    )
     ops.append(
-        {'name': 'f_join', 'fxn': lambda x, p1: f_join(x, p1), 'params': {}, 'if_col': True, 'char': '', 'cost': 1.0,
-         'num_params': 2,
-         })
+        {
+            "name": "f_join",
+            "fxn": lambda x, p1: f_join(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
 
     ops.append(
-        {'name': 'f_delete', 'fxn': lambda x, p1: f_delete(x, p1), 'params': {}, 'if_col': True,
-         'char': '', 'cost': 1.0, 'num_params': 2,
-         })
+        {
+            "name": "f_delete",
+            "fxn": lambda x, p1: f_delete(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
 
     ops.append(
-        {'name': 'f_fill', 'fxn': lambda x, p1: f_fill(x, p1), 'params': {}, 'if_col': True, 'char': '', 'cost': 1.0,
-         'num_params': 2,
-         })
+        {
+            "name": "f_fill",
+            "fxn": lambda x, p1: f_fill(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
 
     ops.append(
-        {'name': 'divide_on f_divide_on_dash', 'fxn': lambda x, p1: f_divide_on_dash(x, p1), 'params': {},
-         'if_col': True,
-         'char': '', 'cost': 1.0,
-         'num_params': 2, })
+        {
+            "name": "divide_on f_divide_on_dash",
+            "fxn": lambda x, p1: f_divide_on_dash(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
 
     for s in delimiters:
         ops.append(
-            {'name': "f_split", 'fxn': lambda x, p1, s=s: f_split(x, p1, s), 'params': {2: "\'%s\'" % (s)},
-             'if_col': True,
-             'char': s, 'cost': 1.0, 'num_params': 3,
-             })
-        ops.append({'name': "f_split", 'fxn': lambda x, p1, s=s: f_split(x, p1, s, True),
-                    'params': {2: "\'%s\'" % (s), 3: 'True'}, 'if_col': True, 'char': s, 'cost': 1.0,
-                    'num_params': 4,
-                    })
-        ops.append({'name': "f_join_char", 'fxn': lambda x, p1, char=s: f_join_char(x, p1, char),
-                    'params': {2: "\'%s\'" % (s)}, 'if_col': True, 'char': s, 'cost': 1.0,
-                    'num_params': 3,
-                    })
+            {
+                "name": "f_split",
+                "fxn": lambda x, p1, s=s: f_split(x, p1, s),
+                "params": {2: "'%s'" % (s)},
+                "if_col": True,
+                "char": s,
+                "cost": 1.0,
+                "num_params": 3,
+            }
+        )
         ops.append(
-            {'name': "f_split_first", 'fxn': lambda x, p1, s=s: f_split_first(x, p1, s),
-             'params': {2: "\'%s\'" % (s)},
-             'if_col': True, 'char': s, 'cost': 1.0,
-             'num_params': 3, })
+            {
+                "name": "f_split",
+                "fxn": lambda x, p1, s=s: f_split(x, p1, s, True),
+                "params": {2: "'%s'" % (s), 3: "True"},
+                "if_col": True,
+                "char": s,
+                "cost": 1.0,
+                "num_params": 4,
+            }
+        )
+        ops.append(
+            {
+                "name": "f_join_char",
+                "fxn": lambda x, p1, char=s: f_join_char(x, p1, char),
+                "params": {2: "'%s'" % (s)},
+                "if_col": True,
+                "char": s,
+                "cost": 1.0,
+                "num_params": 3,
+            }
+        )
+        ops.append(
+            {
+                "name": "f_split_first",
+                "fxn": lambda x, p1, s=s: f_split_first(x, p1, s),
+                "params": {2: "'%s'" % (s)},
+                "if_col": True,
+                "char": s,
+                "cost": 1.0,
+                "num_params": 3,
+            }
+        )
         # ops.append(
         #     {'name': 'f_count_s', 'fxn': lambda x, p1, s=s: f_count_s(x, p1, s),
         #      'params': {2: "\'%s\'" % (s)},
@@ -2131,132 +3281,256 @@ def add_ops_plus():
         #      'num_params': 3, })
 
     ops.append(
-        {'name': 'f_contains_multiple_words', 'fxn': lambda x, p1: f_contains_multiple_words(x, p1), 'params': {},
-         'if_col': True,
-         'char': '', 'cost': 1.0,
-         'num_params': 2,
-         })
+        {
+            "name": "f_contains_multiple_words",
+            "fxn": lambda x, p1: f_contains_multiple_words(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
 
     ops.append(
-        {'name': 'f_contains_multiple_sentences', 'fxn': lambda x, p1: f_contains_multiple_sentences(x, p1),
-         'params': {},
-         'if_col': True, 'char': '', 'cost': 1.0,
-         'num_params': 2,
-         })
+        {
+            "name": "f_contains_multiple_sentences",
+            "fxn": lambda x, p1: f_contains_multiple_sentences(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
 
     ops.append(
-        {'name': 'f_contains_multiple_rows', 'fxn': lambda x, p1: f_contains_multiple_rows(x, p1), 'params': {},
-         'if_col': True,
-         'char': '', 'cost': 1.0,
-         'num_params': 2,
-         })
+        {
+            "name": "f_contains_multiple_rows",
+            "fxn": lambda x, p1: f_contains_multiple_rows(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
 
     ops.append(
-        {'name': 'f_contains_a_questions', 'fxn': lambda x, p1: f_contains_a_questions(x, p1), 'params': {},
-         'if_col': True, 'char': '', 'cost': 1.0,
-         'num_params': 2,
-         })
+        {
+            "name": "f_contains_a_questions",
+            "fxn": lambda x, p1: f_contains_a_questions(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
 
     ops.append(
-        {'name': 'f_contains_an_email', 'fxn': lambda x, p1: f_contains_an_email(x, p1), 'params': {}, 'if_col': True,
-         'char': '', 'cost': 1.0,
-         'num_params': 2,
-         })
+        {
+            "name": "f_contains_an_email",
+            "fxn": lambda x, p1: f_contains_an_email(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
 
     ops.append(
-        {'name': 'f_contains_an_url', 'fxn': lambda x, p1: f_contains_an_url(x, p1), 'params': {}, 'if_col': True,
-         'char': '', 'cost': 1.0,
-         'num_params': 2,
-         })
+        {
+            "name": "f_contains_an_url",
+            "fxn": lambda x, p1: f_contains_an_url(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
 
     ops.append(
-        {'name': 'f_contains_an_ip', 'fxn': lambda x, p1: f_contains_an_ip(x, p1), 'params': {}, 'if_col': True,
-         'char': '', 'cost': 1.0,
-         'num_params': 2,
-         })
+        {
+            "name": "f_contains_an_ip",
+            "fxn": lambda x, p1: f_contains_an_ip(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
 
     ops.append(
-        {'name': 'f_contains_a_phone_number', 'fxn': lambda x, p1: f_contains_a_phone_number(x, p1), 'params': {},
-         'if_col': True, 'char': '', 'cost': 1.0,
-         'num_params': 2,
-         })
+        {
+            "name": "f_contains_a_phone_number",
+            "fxn": lambda x, p1: f_contains_a_phone_number(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
 
     ops.append(
-        {'name': 'f_contains_a_punctuation', 'fxn': lambda x, p1: f_contains_a_punctuation(x, p1), 'params': {},
-         'if_col': True, 'char': '', 'cost': 1.0,
-         'num_params': 2,
-         })
+        {
+            "name": "f_contains_a_punctuation",
+            "fxn": lambda x, p1: f_contains_a_punctuation(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
 
     ops.append(
-        {'name': 'f_contains_a_stopword', 'fxn': lambda x, p1: f_contains_a_stopword(x, p1), 'params': {},
-         'if_col': True, 'char': '', 'cost': 1.0,
-         'num_params': 2,
-         })
+        {
+            "name": "f_contains_a_stopword",
+            "fxn": lambda x, p1: f_contains_a_stopword(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
     global seen_values_for_table_col
     seen_values_for_table_col = {}
     ops.append(
-        {'name': 'f_len', 'fxn': lambda x, p1: f_len(x, p1), 'params': {}, 'if_col': True, 'char': '', 'cost': 1.0,
-         'num_params': 2,
-         })
+        {
+            "name": "f_len",
+            "fxn": lambda x, p1: f_len(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
     ops.append(
-        {'name': 'f_number_of_words', 'fxn': lambda x, p1: f_number_of_words(x, p1), 'params': {}, 'if_col': True,
-         'char': '', 'cost': 1.0,
-         'num_params': 2,
-         })
+        {
+            "name": "f_number_of_words",
+            "fxn": lambda x, p1: f_number_of_words(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
 
     ops.append(
-        {'name': 'f_number_of_sentences', 'fxn': lambda x, p1: f_number_of_sentences(x, p1), 'params': {},
-         'if_col': True, 'char': '', 'cost': 1.0,
-         'num_params': 2,
-         })
+        {
+            "name": "f_number_of_sentences",
+            "fxn": lambda x, p1: f_number_of_sentences(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
 
     ops.append(
-        {'name': 'f_number_of_rows', 'fxn': lambda x, p1: f_number_of_rows(x, p1), 'params': {}, 'if_col': True,
-         'char': '', 'cost': 1.0,
-         'num_params': 2,
-         })
+        {
+            "name": "f_number_of_rows",
+            "fxn": lambda x, p1: f_number_of_rows(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
 
     ops.append(
-        {'name': 'f_number_of_questions', 'fxn': lambda x, p1: f_number_of_questions(x, p1), 'params': {},
-         'if_col': True, 'char': '', 'cost': 1.0,
-         'num_params': 2,
-         })
+        {
+            "name": "f_number_of_questions",
+            "fxn": lambda x, p1: f_number_of_questions(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
 
     ops.append(
-        {'name': 'f_number_of_emails', 'fxn': lambda x, p1: f_number_of_emails(x, p1), 'params': {}, 'if_col': True,
-         'char': '', 'cost': 1.0,
-         'num_params': 2,
-         })
+        {
+            "name": "f_number_of_emails",
+            "fxn": lambda x, p1: f_number_of_emails(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
 
     ops.append(
-        {'name': 'f_number_of_urls', 'fxn': lambda x, p1: f_number_of_urls(x, p1), 'params': {}, 'if_col': True,
-         'char': '', 'cost': 1.0,
-         'num_params': 2,
-         })
+        {
+            "name": "f_number_of_urls",
+            "fxn": lambda x, p1: f_number_of_urls(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
 
     ops.append(
-        {'name': 'f_number_of_ips', 'fxn': lambda x, p1: f_number_of_ips(x, p1), 'params': {}, 'if_col': True,
-         'char': '', 'cost': 1.0,
-         'num_params': 2,
-         })
+        {
+            "name": "f_number_of_ips",
+            "fxn": lambda x, p1: f_number_of_ips(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
 
     ops.append(
-        {'name': 'f_number_of_phone_numbers', 'fxn': lambda x, p1: f_number_of_phone_numbers(x, p1), 'params': {},
-         'if_col': True, 'char': '', 'cost': 1.0,
-         'num_params': 2,
-         })
+        {
+            "name": "f_number_of_phone_numbers",
+            "fxn": lambda x, p1: f_number_of_phone_numbers(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
 
     ops.append(
-        {'name': 'f_number_of_punctuations', 'fxn': lambda x, p1: f_number_of_punctuations(x, p1), 'params': {},
-         'if_col': True, 'char': '', 'cost': 1.0,
-         'num_params': 2,
-         })
+        {
+            "name": "f_number_of_punctuations",
+            "fxn": lambda x, p1: f_number_of_punctuations(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
 
     ops.append(
-        {'name': 'f_number_of_stopwords', 'fxn': lambda x, p1: f_number_of_stopwords(x, p1), 'params': {},
-         'if_col': True, 'char': '', 'cost': 1.0,
-         'num_params': 2,
-         })
+        {
+            "name": "f_number_of_stopwords",
+            "fxn": lambda x, p1: f_number_of_stopwords(x, p1),
+            "params": {},
+            "if_col": True,
+            "char": "",
+            "cost": 1.0,
+            "num_params": 2,
+        }
+    )
 
     # for s in delimiters:
     #     ops.append(
@@ -2284,7 +3558,6 @@ def add_extract(current_table, target_table, cur_node=None, goal_node=None):
         tar_table_cols = goal_node.prop_col_data
 
     else:
-
         for i in range(len(current_table[0])):
             tempset = set([row[i] for row in current_table])
 
@@ -2307,14 +3580,15 @@ def add_extract(current_table, target_table, cur_node=None, goal_node=None):
         strs = tar_table_cols[i]
 
         for j in range(len(cur_table_cols)):
-
             if_add = True
             # Check if the strings in column i of the target table can always be found in column j of current table. Also we don't want it to be exactly the same.
-            if any((item not in "".join(cur_table_cols[j]) or item in cur_table_cols[j]) for item in tar_table_cols[i]):
+            if any(
+                (item not in "".join(cur_table_cols[j]) or item in cur_table_cols[j])
+                for item in tar_table_cols[i]
+            ):
                 break
 
             if if_add:
-
                 prefix_candidate = []
                 suffix_candidate = []
 
@@ -2322,19 +3596,24 @@ def add_extract(current_table, target_table, cur_node=None, goal_node=None):
                     pattern = re.compile(item)
 
                     for cell in cur_table_cols[j]:
-
                         for m in re.finditer(pattern, cell):
                             start = m.start()
                             end = m.end()
 
                             prev_token = find_token(cell, start, False)
 
-                            if (prev_token.isdigit() != item.isdigit() and prev_token.isalpha() != item.isalpha()):
+                            if (
+                                prev_token.isdigit() != item.isdigit()
+                                and prev_token.isalpha() != item.isalpha()
+                            ):
                                 prefix_candidate.append(re.escape(prev_token))
 
                             next_token = find_token(cell, end)
 
-                            if (next_token.isdigit() != item.isdigit() and next_token.isalpha() != item.isalpha()):
+                            if (
+                                next_token.isdigit() != item.isdigit()
+                                and next_token.isalpha() != item.isalpha()
+                            ):
                                 suffix_candidate.append(re.escape(next_token))
 
                 prefix_candidate = set(prefix_candidate)
@@ -2346,27 +3625,50 @@ def add_extract(current_table, target_table, cur_node=None, goal_node=None):
                 for regex in regexes:
                     # Extract
                     myops.append(
-                        {'name': "f_extract", 'fxn': lambda table, col, regex=regex: f_extract(table, col, regex),
-                         'params': {2: "\'%s\'" % (regex)}, 'if_col': True, 'char': regex, 'cost': 1.0,
-                         'num_params': 3,
-                         'preserving_row_major_order': True})
+                        {
+                            "name": "f_extract",
+                            "fxn": lambda table, col, regex=regex: f_extract(
+                                table, col, regex
+                            ),
+                            "params": {2: "'%s'" % (regex)},
+                            "if_col": True,
+                            "char": regex,
+                            "cost": 1.0,
+                            "num_params": 3,
+                            "preserving_row_major_order": True,
+                        }
+                    )
 
                     for prefix in prefix_candidate:
-                        myops.append({'name': "f_extract",
-                                      'fxn': lambda table, col, regex=regex, prefix=prefix: f_extract(table, col, regex,
-                                                                                                      prefix=prefix),
-                                      'params': {2: "\'%s\'" % (regex), 3: "\'%s\'" % (prefix)}, 'if_col': True,
-                                      'char': prefix + "(" + regex + ")", 'cost': 1.0,
-                                      'num_params': 4,
-                                      'preserving_row_major_order': True})
+                        myops.append(
+                            {
+                                "name": "f_extract",
+                                "fxn": lambda table, col, regex=regex, prefix=prefix: f_extract(
+                                    table, col, regex, prefix=prefix
+                                ),
+                                "params": {2: "'%s'" % (regex), 3: "'%s'" % (prefix)},
+                                "if_col": True,
+                                "char": prefix + "(" + regex + ")",
+                                "cost": 1.0,
+                                "num_params": 4,
+                                "preserving_row_major_order": True,
+                            }
+                        )
 
                     for suffix in suffix_candidate:
-                        myops.append({'name': "f_extract",
-                                      'fxn': lambda table, col, regex=regex, suffix=suffix: f_extract(table, col, regex,
-                                                                                                      suffix=suffix),
-                                      'params': {2: "\'%s\'" % (regex), 3: "\'%s\'" % (suffix)}, 'if_col': True,
-                                      'char': "(" + regex + ")" + suffix, 'cost': 1.0,
-                                      'num_params': 4,
-                                      'preserving_row_major_order': True})
+                        myops.append(
+                            {
+                                "name": "f_extract",
+                                "fxn": lambda table, col, regex=regex, suffix=suffix: f_extract(
+                                    table, col, regex, suffix=suffix
+                                ),
+                                "params": {2: "'%s'" % (regex), 3: "'%s'" % (suffix)},
+                                "if_col": True,
+                                "char": "(" + regex + ")" + suffix,
+                                "cost": 1.0,
+                                "num_params": 4,
+                                "preserving_row_major_order": True,
+                            }
+                        )
 
     return myops

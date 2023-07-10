@@ -1,5 +1,6 @@
-import pandas as pd
 import config
+import pandas as pd
+
 
 class Table:
     CATEGORICAL_UPPER_BOUND = config.CATEGORICAL_UPPER_BOUND
@@ -34,9 +35,9 @@ class Table:
     def set_attribute_types(self, use_profiler=False):
         if use_profiler:
             profiler = ProfileReport(T_prime.table)
-            var = prof.get_description()['variables']
+            var = prof.get_description()["variables"]
             #             print({i: v for i, v in enumerate(self.A)})
-            return {i: var[v]['type'] for i, v in enumerate(self.table.columns)}
+            return {i: var[v]["type"] for i, v in enumerate(self.table.columns)}
         else:
             return dict(zip(self.A, self.table.dtypes))
 
@@ -50,9 +51,9 @@ class Table:
             #     is_change = True
             # elif cardinality <= self.CATEGORICAL_UPPER_BOUND:
             if cardinality <= self.CATEGORICAL_UPPER_BOUND:
-                self.table.iloc[:, a] = self.table.iloc[:, a].astype('category')
+                self.table.iloc[:, a] = self.table.iloc[:, a].astype("category")
                 is_change = True
-            elif self.A_types[a] == 'object' and pd.api.types.is_string_dtype(col):
+            elif self.A_types[a] == "object" and pd.api.types.is_string_dtype(col):
                 self.table.iloc[:, a] = self.table.iloc[:, a].astype(str)
                 is_change = True
         if is_change:
@@ -68,7 +69,7 @@ class Table:
         return [self.headers[i] for i in attribute_set]
 
     def get_feature_like_attributes(self):
-        return [a for a in self.A_types if self.A_types[a] not in ['object']]
+        return [a for a in self.A_types if self.A_types[a] not in ["object"]]
 
     def get_row_by_id(self, row_id):
         return self.table.iloc[row_id, :]

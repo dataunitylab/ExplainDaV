@@ -1,25 +1,20 @@
+import io
 import re
+import sys
+import time
 
+import featuretools as ft
 import numpy as np
 import pandas as pd
-from sklearn import svm
-from sklearn.linear_model import LogisticRegression
-from sklearn.linear_model import LinearRegression
-from sklearn.linear_model import LassoCV
-from sklearn.linear_model import RidgeCV
-from sklearn.linear_model import Ridge
-from sklearn.linear_model import LassoLarsCV
-from sklearn.linear_model import ElasticNetCV
-from sklearn.gaussian_process import GaussianProcessRegressor
-from sklearn import tree
-from sklearn.preprocessing import PolynomialFeatures
-from sklearn.pipeline import make_pipeline
 from config import *
+from sklearn import svm, tree
+from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.linear_model import (ElasticNetCV, LassoCV, LassoLarsCV,
+                                  LinearRegression, LogisticRegression, Ridge,
+                                  RidgeCV)
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import OrdinalEncoder, PolynomialFeatures
 from sklearn.tree import _tree
-import io, sys
-import featuretools as ft
-import time
-from sklearn.preprocessing import OrdinalEncoder
 
 # lasso, ridge, regular, LassoLarsCV, ElasticNetCV
 first_regressor = LassoLarsCV
@@ -42,7 +37,7 @@ def get_formula(model, feature_names=None):
         else:
             s = "y = {0:.3f}".format(model.intercept_)
         if feature_names:
-            for (i, c) in zip(feature_names, model.coef_):
+            for i, c in zip(feature_names, model.coef_):
                 if np.array(c) == np.array(0.0):
                     continue
                 if abs(c) < 0.00000000001:
@@ -55,15 +50,15 @@ def get_formula(model, feature_names=None):
                 else:
                     s += " + {0:.3f} * {1}".format(c, i)
         else:
-            for (i, c) in enumerate(model.coef_):
+            for i, c in enumerate(model.coef_):
                 if np.array(c) == np.array(0.0):
                     continue
                 s += " + {0:.3f} * x{1}".format(c, i)
         formulas.append(s)
     else:
-        for (intercept, coef) in zip(model.intercept_, model.coef_):
+        for intercept, coef in zip(model.intercept_, model.coef_):
             s = "y = {0:.3f}".format(intercept)
-            for (i, c) in enumerate(coef):
+            for i, c in enumerate(coef):
                 s += " + {0:.3f} * x{1}".format(c, i)
             formulas.append(s)
     return formulas[0]
@@ -72,15 +67,13 @@ def get_formula(model, feature_names=None):
 def get_rules(model, feature_names, class_names):
     tree_ = model.tree_
     feature_name = [
-        feature_names[i] if i is not None else "undefined!"
-        for i in tree_.feature
+        feature_names[i] if i is not None else "undefined!" for i in tree_.feature
     ]
 
     paths = []
     path = []
 
     def recurse(node, path, paths):
-
         if tree_.feature[node] is not None:
             name = feature_name[node]
             threshold = tree_.threshold[node]
@@ -185,10 +178,16 @@ def get_explainabilty_classification(clf):
     eval_explainabilty_repeated_terms = len(features)
     eval_explainabilty_cognitive_chunks = eval_explainabilty_size - clf.get_n_leaves()
     # print(eval_explainabilty_size, eval_explainabilty_repeated_terms, eval_explainabilty_cognitive_chunks)
-    return eval_explainabilty_size, eval_explainabilty_repeated_terms, eval_explainabilty_cognitive_chunks
+    return (
+        eval_explainabilty_size,
+        eval_explainabilty_repeated_terms,
+        eval_explainabilty_cognitive_chunks,
+    )
 
 
-def learn_data_transformation_BINARY_CLASSIFICATION(X_train, y_train, X_test, y_test, applied_over_rows=False):
+def learn_data_transformation_BINARY_CLASSIFICATION(
+    X_train, y_train, X_test, y_test, applied_over_rows=False
+):
     # clf = svm.SVC(kernel='linear')
     # clf = LogisticRegression()
     # clf = LogisticRegression()
@@ -208,11 +207,14 @@ def learn_data_transformation_BINARY_CLASSIFICATION(X_train, y_train, X_test, y_
         generalization_labels = dict(zip(X_test.index, clf.predict(X_test)))
         return formula, validation_labels, generalization_labels
     run_time = time.time() - start
-    return {formula: [eval_validation, eval_generalization, *eval_explainabilty, run_time]}
+    return {
+        formula: [eval_validation, eval_generalization, *eval_explainabilty, run_time]
+    }
 
 
-def learn_data_transformation_MULTICLASS_CLASSIFICATION(X_train, y_train, X_test, y_test,
-                                                        include_aggregated=False, non_numeric=None):
+def learn_data_transformation_MULTICLASS_CLASSIFICATION(
+    X_train, y_train, X_test, y_test, include_aggregated=False, non_numeric=None
+):
     # print('--FIX--')
     # clf = svm.SVC(kernel='linear')
     # clf = LogisticRegression()
@@ -239,13 +241,25 @@ def learn_data_transformation_MULTICLASS_CLASSIFICATION(X_train, y_train, X_test
     except:
         eval_generalization = 0.0
     run_time = time.time() - start
-    models[formula] = [eval_validation, eval_generalization, *eval_explainabilty, run_time]
+    models[formula] = [
+        eval_validation,
+        eval_generalization,
+        *eval_explainabilty,
+        run_time,
+    ]
     return models
 
 
 def get_explainabilty_regression(regr, formula):
-    eval_explainabilty_size = float(len([c for c in regr.coef_ if float(abs(c)) > 0.00000000001 and
-                                         np.array(c) != np.array(0.0)]))
+    eval_explainabilty_size = float(
+        len(
+            [
+                c
+                for c in regr.coef_
+                if float(abs(c)) > 0.00000000001 and np.array(c) != np.array(0.0)
+            ]
+        )
+    )
     # print(formula)
     # print(regr.coef_)
     # print([c for c in regr.coef_ if float(abs(c)) > 0.00000000001 and
@@ -254,7 +268,7 @@ def get_explainabilty_regression(regr, formula):
     # print(eval_explainabilty_size)
     if regr.intercept_ != 0.0:
         eval_explainabilty_size += 1
-    vars = set(re.findall('x(\d+)', formula))
+    vars = set(re.findall("x(\d+)", formula))
     eval_explainabilty_repeated_terms = float(len(vars))
     eval_explainabilty_cognitive_chunks = float(bool(eval_explainabilty_size))
     if len(vars) == 0:
@@ -262,19 +276,27 @@ def get_explainabilty_regression(regr, formula):
     else:
         power_max = 1
     for power in range(2, 5):
-        if '^{}'.format(power) in formula:
+        if "^{}".format(power) in formula:
             power_max = power
     # print(power_max)
     eval_explainabilty_cognitive_chunks += float(power_max)
-    eval_explainabilty_cognitive_chunks += float('log' in formula)
-    eval_explainabilty_cognitive_chunks += float('sqrt' in formula)
-    eval_explainabilty_cognitive_chunks += float('1/' in formula)
-    eval_explainabilty_cognitive_chunks += float('exp' in formula)
-    eval_explainabilty_cognitive_chunks += bool(len(re.findall('x(\d+) x(\d+)', formula)))
-    eval_explainabilty_cognitive_chunks += bool(len(re.findall('x(\d+)/x(\d+)', formula)))
+    eval_explainabilty_cognitive_chunks += float("log" in formula)
+    eval_explainabilty_cognitive_chunks += float("sqrt" in formula)
+    eval_explainabilty_cognitive_chunks += float("1/" in formula)
+    eval_explainabilty_cognitive_chunks += float("exp" in formula)
+    eval_explainabilty_cognitive_chunks += bool(
+        len(re.findall("x(\d+) x(\d+)", formula))
+    )
+    eval_explainabilty_cognitive_chunks += bool(
+        len(re.findall("x(\d+)/x(\d+)", formula))
+    )
     # print(formula)
     # print(eval_explainabilty_size, eval_explainabilty_repeated_terms, eval_explainabilty_cognitive_chunks)
-    return eval_explainabilty_size, eval_explainabilty_repeated_terms, eval_explainabilty_cognitive_chunks
+    return (
+        eval_explainabilty_size,
+        eval_explainabilty_repeated_terms,
+        eval_explainabilty_cognitive_chunks,
+    )
 
 
 def compute_score(X, y, regr):
@@ -282,19 +304,16 @@ def compute_score(X, y, regr):
     try:
         eval_validation = regr.score(X, y)
     except Exception as err:
-        if 'Input contains NaN, infinity or a value too large' in str(err):
+        if "Input contains NaN, infinity or a value too large" in str(err):
             return 0
     if eval_validation < 0:
         eval_validation = 0
     return eval_validation
 
 
-def learn_data_transformation_REGRESSION_step(X_train,
-                                              y_train,
-                                              X_test,
-                                              y_test,
-                                              feature_names=None,
-                                              regr_type=RidgeCV):
+def learn_data_transformation_REGRESSION_step(
+    X_train, y_train, X_test, y_test, feature_names=None, regr_type=RidgeCV
+):
     # print(y_train)
     start = time.time()
     regr = regr_type()
@@ -325,13 +344,20 @@ def learn_data_transformation_REGRESSION_step(X_train,
     eval_generalization = compute_score(X_test, y_test, regr)
     run_time = time.time() - start
     # print(formula)
-    return {formula: [eval_validation, eval_generalization, *eval_explainabilty, run_time]}
+    return {
+        formula: [eval_validation, eval_generalization, *eval_explainabilty, run_time]
+    }
 
 
-def learn_data_transformation_REGRESSION(X_train, y_train, X_test, y_test,
-                                         binary_features=None,
-                                         include_grouping_aggregated=False,
-                                         non_numeric=None):
+def learn_data_transformation_REGRESSION(
+    X_train,
+    y_train,
+    X_test,
+    y_test,
+    binary_features=None,
+    include_grouping_aggregated=False,
+    non_numeric=None,
+):
     models = {}
     if X_train.empty or len(y_train) == 0:
         return {}
@@ -348,37 +374,39 @@ def learn_data_transformation_REGRESSION(X_train, y_train, X_test, y_test,
             X_test_a = extend_features_with_local_aggregations(X_test.copy(), a)
             feature_names = list(X_train_a.columns)
             try:
-                models.update(learn_data_transformation_REGRESSION_step(X_train_a,
-                                                                        y_train,
-                                                                        X_test_a,
-                                                                        y_test,
-                                                                        feature_names,
-                                                                        first_regressor))
+                models.update(
+                    learn_data_transformation_REGRESSION_step(
+                        X_train_a,
+                        y_train,
+                        X_test_a,
+                        y_test,
+                        feature_names,
+                        first_regressor,
+                    )
+                )
             except:
-                models.update(learn_data_transformation_REGRESSION_step(X_train_a,
-                                                                        y_train,
-                                                                        X_test_a,
-                                                                        y_test,
-                                                                        feature_names,
-                                                                        second_regressor))
+                models.update(
+                    learn_data_transformation_REGRESSION_step(
+                        X_train_a,
+                        y_train,
+                        X_test_a,
+                        y_test,
+                        feature_names,
+                        second_regressor,
+                    )
+                )
         return models
     try:
-        sol = learn_data_transformation_REGRESSION_step(X_train,
-                                                        y_train,
-                                                        X_test,
-                                                        y_test,
-                                                        list(X_train.columns),
-                                                        first_regressor)
-        sol = {'(no extensions)' + k: sol[k] for k in sol}
+        sol = learn_data_transformation_REGRESSION_step(
+            X_train, y_train, X_test, y_test, list(X_train.columns), first_regressor
+        )
+        sol = {"(no extensions)" + k: sol[k] for k in sol}
         models.update(sol)
     except:
-        sol = learn_data_transformation_REGRESSION_step(X_train,
-                                                        y_train,
-                                                        X_test,
-                                                        y_test,
-                                                        list(X_train.columns),
-                                                        second_regressor)
-        sol = {'(no extensions)' + k: sol[k] for k in sol}
+        sol = learn_data_transformation_REGRESSION_step(
+            X_train, y_train, X_test, y_test, list(X_train.columns), second_regressor
+        )
+        sol = {"(no extensions)" + k: sol[k] for k in sol}
         models.update(sol)
     if binary_features:
         non_binary_features = [a for a in X_train.columns if a not in binary_features]
@@ -387,11 +415,13 @@ def learn_data_transformation_REGRESSION(X_train, y_train, X_test, y_test,
         X_train = X_train[non_binary_features]
     extend_features_poly_2 = lambda X: extend_features_poly(X, 2)
     extend_features_poly_3 = lambda X: extend_features_poly(X, 3)
-    all_possible_extensions = [extend_features_poly_2,
-                               extend_features_poly_3,
-                               extend_features_div,
-                               extend_features_additional,
-                               extend_features_global_aggregations]
+    all_possible_extensions = [
+        extend_features_poly_2,
+        extend_features_poly_3,
+        extend_features_div,
+        extend_features_additional,
+        extend_features_global_aggregations,
+    ]
     for extensions in powerset(all_possible_extensions):
         if not len(extensions):
             continue
@@ -405,20 +435,14 @@ def learn_data_transformation_REGRESSION(X_train, y_train, X_test, y_test,
             X_test_new = extend(X_test_new)
             names = list(X_train_new.columns)
         try:
-            sol = learn_data_transformation_REGRESSION_step(X_train_new,
-                                                            y_train,
-                                                            X_test_new,
-                                                            y_test,
-                                                            names,
-                                                            first_regressor)
+            sol = learn_data_transformation_REGRESSION_step(
+                X_train_new, y_train, X_test_new, y_test, names, first_regressor
+            )
             models.update(sol)
         except:
-            sol = learn_data_transformation_REGRESSION_step(X_train_new,
-                                                            y_train,
-                                                            X_test_new,
-                                                            y_test,
-                                                            names,
-                                                            second_regressor)
+            sol = learn_data_transformation_REGRESSION_step(
+                X_train_new, y_train, X_test_new, y_test, names, second_regressor
+            )
             models.update(sol)
     # print(models)
     return models
@@ -708,6 +732,7 @@ def learn_data_transformation_REGRESSION(X_train, y_train, X_test, y_test,
 #     # print('y = ' + func)
 #     return
 
+
 def extend_features_poly(X, poly_size=2):
     poly = PolynomialFeatures(poly_size, include_bias=False)
     extended_X = poly.fit_transform(X)
@@ -726,21 +751,29 @@ def extend_features_poly(X, poly_size=2):
 
 def extend_features_div(X):
     extended_X = X
-    names = ['x' + str(i) for i, _ in enumerate(X.columns)]
+    names = ["x" + str(i) for i, _ in enumerate(X.columns)]
     for i, col in enumerate(X.columns):
-        if X[col].dtype == 'category':
+        if X[col].dtype == "category":
             continue
         for j, col_j in enumerate(X.columns):
             if j == i:
                 continue
-            if X[col_j].dtype == 'category':
+            if X[col_j].dtype == "category":
                 continue
             else:
                 # extended_X = np.column_stack((extended_X, X[col] / X[col_j])
-                extended_X = np.column_stack((extended_X, np.divide(X[col], X[col_j],
-                                                                    out=np.zeros_like(X[col]),
-                                                                    where=X[col_j] != 0)))
-                names.append('x' + str(i) + '/x' + str(j))
+                extended_X = np.column_stack(
+                    (
+                        extended_X,
+                        np.divide(
+                            X[col],
+                            X[col_j],
+                            out=np.zeros_like(X[col]),
+                            where=X[col_j] != 0,
+                        ),
+                    )
+                )
+                names.append("x" + str(i) + "/x" + str(j))
     extended_X = np.nan_to_num(extended_X)
     # extended_X = extended_X.where(extended_X > new_inf, new_inf)
     # extended_X = extended_X.where(extended_X < -new_inf, -new_inf)
@@ -755,7 +788,7 @@ def extend_features_div(X):
 
 def extend_features_additional(X):
     extended_X = X
-    names = ['x' + str(i) for i, _ in enumerate(X.columns)]
+    names = ["x" + str(i) for i, _ in enumerate(X.columns)]
     for i, col in enumerate(X.columns):
         if X[col].dtype != float:
             if X[col].dtype == int:
@@ -763,13 +796,13 @@ def extend_features_additional(X):
             else:
                 continue
         extended_X = np.column_stack((extended_X, np.log(X[col])))
-        names.append('log(x' + str(i) + ')')
+        names.append("log(x" + str(i) + ")")
         extended_X = np.column_stack((extended_X, np.sqrt(X[col])))
-        names.append('sqrt(x' + str(i) + ')')
+        names.append("sqrt(x" + str(i) + ")")
         extended_X = np.column_stack((extended_X, np.reciprocal(X[col])))
-        names.append('1/x' + str(i))
+        names.append("1/x" + str(i))
         extended_X = np.column_stack((extended_X, np.exp(X[col])))
-        names.append('exp(x' + str(i) + ')')
+        names.append("exp(x" + str(i) + ")")
     extended_X = np.nan_to_num(extended_X)
     # extended_X = extended_X.where(extended_X > new_inf, new_inf)
     # extended_X = extended_X.where(extended_X < -new_inf, -new_inf)
@@ -784,13 +817,13 @@ def extend_features_additional(X):
 
 def extend_features_global_aggregations(X):
     extended_X = X
-    extended_X['all'] = 1
-    es = ft.EntitySet(id='T')
-    es.add_dataframe(dataframe_name='T', dataframe=X, make_index=True, index='index')
-    es.normalize_dataframe(new_dataframe_name=' ',
-                           base_dataframe_name="T",
-                           index='all')
-    extended_X = ft.dfs(target_dataframe_name="T", entityset=es)[0].drop(['all'], axis=1)
+    extended_X["all"] = 1
+    es = ft.EntitySet(id="T")
+    es.add_dataframe(dataframe_name="T", dataframe=X, make_index=True, index="index")
+    es.normalize_dataframe(new_dataframe_name=" ", base_dataframe_name="T", index="all")
+    extended_X = ft.dfs(target_dataframe_name="T", entityset=es)[0].drop(
+        ["all"], axis=1
+    )
     # extended_X = extended_X.loc[:, (extended_X != 0).any(axis=0)]
     try:
         # extended_X.loc[extended_X > new_inf, :] = new_inf
@@ -804,13 +837,17 @@ def extend_features_global_aggregations(X):
 
 def extend_features_with_local_aggregations(X, non_numeric):
     extended_X = X
-    es = ft.EntitySet(id='T')
-    es.add_dataframe(dataframe_name='T', dataframe=extended_X, make_index=True, index='index')
-    es.normalize_dataframe(new_dataframe_name=non_numeric,
-                           base_dataframe_name="T",
-                           index=non_numeric)
+    es = ft.EntitySet(id="T")
+    es.add_dataframe(
+        dataframe_name="T", dataframe=extended_X, make_index=True, index="index"
+    )
+    es.normalize_dataframe(
+        new_dataframe_name=non_numeric, base_dataframe_name="T", index=non_numeric
+    )
     # extended_X = ft.dfs(target_dataframe_name="T", entityset=es)[0].drop([non_numeric], axis=1)
-    extended_X = ft.dfs(target_dataframe_name="T", entityset=es)[0].select_dtypes(['number'])
+    extended_X = ft.dfs(target_dataframe_name="T", entityset=es)[0].select_dtypes(
+        ["number"]
+    )
     # extended_X = extended_X.loc[:, (extended_X != 0).any(axis=0)]
     try:
         extended_X = extended_X.fillna(0.0)
@@ -827,16 +864,27 @@ def extend_features_with_local_aggregations(X, non_numeric):
 
 def explore_group_bys_single(X, group_by_candidate_name):
     extended_X = X
-    es = ft.EntitySet(id='T')
-    es.add_dataframe(dataframe_name='T_' + group_by_candidate_name, dataframe=extended_X, make_index=True,
-                     index='index')
+    es = ft.EntitySet(id="T")
+    es.add_dataframe(
+        dataframe_name="T_" + group_by_candidate_name,
+        dataframe=extended_X,
+        make_index=True,
+        index="index",
+    )
 
-    es.normalize_dataframe(new_dataframe_name=group_by_candidate_name,
-                           base_dataframe_name="T_" + group_by_candidate_name,
-                           index=group_by_candidate_name)
-    extended_X = ft.dfs(target_dataframe_name=group_by_candidate_name,
-                        entityset=es)[0].reset_index().sort_values(group_by_candidate_name)
-    extended_X = extended_X.drop([group_by_candidate_name], axis=1).select_dtypes(['number'])
+    es.normalize_dataframe(
+        new_dataframe_name=group_by_candidate_name,
+        base_dataframe_name="T_" + group_by_candidate_name,
+        index=group_by_candidate_name,
+    )
+    extended_X = (
+        ft.dfs(target_dataframe_name=group_by_candidate_name, entityset=es)[0]
+        .reset_index()
+        .sort_values(group_by_candidate_name)
+    )
+    extended_X = extended_X.drop([group_by_candidate_name], axis=1).select_dtypes(
+        ["number"]
+    )
     # extended_X = extended_X.loc[:, (extended_X != 0).any(axis=0)]
     extended_X = extended_X.fillna(0.0)
     extended_X = extended_X.mask(extended_X > new_inf, new_inf)
@@ -847,27 +895,40 @@ def explore_group_bys_single(X, group_by_candidate_name):
 
 
 def explore_group_bys_multi(X, group_by_candidate_names):
-    concat_group_by_candidate_names = '+'.join(group_by_candidate_names)
+    concat_group_by_candidate_names = "+".join(group_by_candidate_names)
     extended_X = X
-    extended_X[concat_group_by_candidate_names] = extended_X[group_by_candidate_names[0]].astype(str)
+    extended_X[concat_group_by_candidate_names] = extended_X[
+        group_by_candidate_names[0]
+    ].astype(str)
     for candidate_name in group_by_candidate_names[1:]:
-        extended_X[concat_group_by_candidate_names] += '+' + extended_X[candidate_name].astype(str)
-    es = ft.EntitySet(id='T')
-    es.add_dataframe(dataframe_name='T_' + concat_group_by_candidate_names,
-                     dataframe=extended_X,
-                     make_index=True,
-                     index='index')
-    es.normalize_dataframe(new_dataframe_name=concat_group_by_candidate_names,
-                           base_dataframe_name='T_' + concat_group_by_candidate_names,
-                           index=concat_group_by_candidate_names)
+        extended_X[concat_group_by_candidate_names] += "+" + extended_X[
+            candidate_name
+        ].astype(str)
+    es = ft.EntitySet(id="T")
+    es.add_dataframe(
+        dataframe_name="T_" + concat_group_by_candidate_names,
+        dataframe=extended_X,
+        make_index=True,
+        index="index",
+    )
+    es.normalize_dataframe(
+        new_dataframe_name=concat_group_by_candidate_names,
+        base_dataframe_name="T_" + concat_group_by_candidate_names,
+        index=concat_group_by_candidate_names,
+    )
     # extended_X = ft.dfs(target_dataframe_name=concat_group_by_candidate_names,
     #                     entityset=es)[0].reset_index().select_dtypes(['number'])
-    extended_X = ft.dfs(target_dataframe_name=concat_group_by_candidate_names,
-                        entityset=es)[0].reset_index()
+    extended_X = ft.dfs(
+        target_dataframe_name=concat_group_by_candidate_names, entityset=es
+    )[0].reset_index()
     for i, cand in enumerate(group_by_candidate_names):
-        extended_X[cand] = extended_X.reset_index()[concat_group_by_candidate_names].str.split('+').str[i]
+        extended_X[cand] = (
+            extended_X.reset_index()[concat_group_by_candidate_names]
+            .str.split("+")
+            .str[i]
+        )
     extended_X = extended_X.sort_values(group_by_candidate_names)
-    extended_X = extended_X.select_dtypes(['number'])
+    extended_X = extended_X.select_dtypes(["number"])
     extended_X = extended_X.fillna(0.0)
     # extended_X = extended_X.mask(extended_X > new_inf, new_inf)
     # extended_X = extended_X.mask(extended_X < -new_inf, -new_inf)
@@ -876,8 +937,9 @@ def explore_group_bys_multi(X, group_by_candidate_names):
     return extended_X
 
 
-def learn_data_transformation_REGRESSION_projected_table(X_train, y_train, X_test, y_test,
-                                                         group_by_candidate):
+def learn_data_transformation_REGRESSION_projected_table(
+    X_train, y_train, X_test, y_test, group_by_candidate
+):
     models = {}
     X_train_new = X_train.copy()
     X_test_new = X_test.copy()
@@ -886,7 +948,9 @@ def learn_data_transformation_REGRESSION_projected_table(X_train, y_train, X_tes
         X_train_new = explore_group_bys_single(X_train_new, group_by_candidate_name)
         X_test_new = explore_group_bys_single(X_test_new, group_by_candidate_name)
     else:
-        group_by_candidate_names = [X_train_new.columns.tolist()[i] for i in group_by_candidate]
+        group_by_candidate_names = [
+            X_train_new.columns.tolist()[i] for i in group_by_candidate
+        ]
         X_train_new = explore_group_bys_multi(X_train_new, group_by_candidate_names)
         X_test_new = explore_group_bys_multi(X_test_new, group_by_candidate_names)
     feature_names = list(X_train_new.columns)
@@ -898,23 +962,28 @@ def learn_data_transformation_REGRESSION_projected_table(X_train, y_train, X_tes
                 continue
             X_test_new[delta_col] = 0.0
     if len(X_train_new) < 100:
-        merged = X_train_new.reset_index().merge(y_train,
-                                                 left_index=True,
-                                                 right_index=True).sample(n=10, random_state=1, replace=True)
+        merged = (
+            X_train_new.reset_index()
+            .merge(y_train, left_index=True, right_index=True)
+            .sample(n=10, random_state=1, replace=True)
+        )
         X_train_new = merged[X_train_new.columns]
         y_train = merged[y_train.name]
     try:
-        models.update(learn_data_transformation_REGRESSION_step(X_train_new,
-                                                                y_train,
-                                                                X_test_new,
-                                                                y_test,
-                                                                feature_names,
-                                                                first_regressor))
+        models.update(
+            learn_data_transformation_REGRESSION_step(
+                X_train_new, y_train, X_test_new, y_test, feature_names, first_regressor
+            )
+        )
     except:
-        models.update(learn_data_transformation_REGRESSION_step(X_train_new,
-                                                                y_train,
-                                                                X_test_new,
-                                                                y_test,
-                                                                feature_names,
-                                                                second_regressor))
+        models.update(
+            learn_data_transformation_REGRESSION_step(
+                X_train_new,
+                y_train,
+                X_test_new,
+                y_test,
+                feature_names,
+                second_regressor,
+            )
+        )
     return models

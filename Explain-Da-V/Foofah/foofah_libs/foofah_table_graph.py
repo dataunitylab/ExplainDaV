@@ -1,11 +1,10 @@
+import itertools
+import math
+import operator
 import re
 import string
-import math
-from operator import itemgetter
 from itertools import groupby
-
-import itertools
-import operator
+from operator import itemgetter
 
 # import foofah_utils
 
@@ -42,7 +41,6 @@ class TableNode:
 
 class TableGraph:
     def __init__(self, table):
-
         self.cells = []
         self.data_set = set()
 
@@ -71,7 +69,9 @@ class TableGraph:
 
     def graph_edit_distance_greedy(self, other, batch=False):
         if batch:
-            return clustered_maps(graph_edit_distance_greedy(self, other)[0], self, other)
+            return clustered_maps(
+                graph_edit_distance_greedy(self, other)[0], self, other
+            )
         return graph_edit_distance_greedy(self, other)
 
     def batch_graph_edit_distance_greedy(self, other):
@@ -85,11 +85,17 @@ class TableGraph:
     def __rshift__(self, other):
         return self.graph_edit_distance_greedy(other)
 
+
 # Print a path
 def print_map(edge):
     if edge[0] and edge[1]:
-        print(edge[0].data, "(%d,%d)" % (edge[0].row, edge[0].col), "->", edge[1].data, "(%d,%d)" % (
-        edge[1].row, edge[1].col))
+        print(
+            edge[0].data,
+            "(%d,%d)" % (edge[0].row, edge[0].col),
+            "->",
+            edge[1].data,
+            "(%d,%d)" % (edge[1].row, edge[1].col),
+        )
     elif edge[0]:
         print(edge[0].data, "(%d,%d)" % (edge[0].row, edge[0].col), "->", "empty")
 
@@ -186,7 +192,6 @@ def cluster_by_columns(path, i=0, continuous=False, identical_row=False):
 
     for tran in path:
         if tran[i]:
-
             if tran[i].col not in list(cluster_c.keys()):
                 cluster_c[tran[i].col] = [tran]
             else:
@@ -264,34 +269,53 @@ def clustered_maps(path, orig_table, target_table):
 
     # Separate by types
     for group in cluster_by_types(path):
-
         input_output_set = []
 
         for pair in group:
             if pair[0] and pair[1]:
-                input_output_set.append((pair[0].row, pair[0].col, pair[1].row, pair[1].col))
+                input_output_set.append(
+                    (pair[0].row, pair[0].col, pair[1].row, pair[1].col)
+                )
             elif pair[0]:
                 input_output_set.append((pair[0].row, pair[0].col, None, None))
 
             elif pair[1]:
                 input_output_set.append((None, None, pair[1].row, pair[1].col))
 
-        if group[0][2] == MAP_TYPE_MV or group[0][2] == MAP_TYPE_MER or group[0][2] == MAP_TYPE_SPL or group[0][
-            2] == MAP_TYPE_UNKNOWN:
-
+        if (
+            group[0][2] == MAP_TYPE_MV
+            or group[0][2] == MAP_TYPE_MER
+            or group[0][2] == MAP_TYPE_SPL
+            or group[0][2] == MAP_TYPE_UNKNOWN
+        ):
             # Row major input table
 
-            i_row_o_row = sorted(input_output_set, key=lambda x: (x[0], x[1], x[2], x[3]))
+            i_row_o_row = sorted(
+                input_output_set, key=lambda x: (x[0], x[1], x[2], x[3])
+            )
             temp_path = [mv_dict[i_row_o_row[0]]]
             base = i_row_o_row[0]
 
             i = 1
 
             while i < len(i_row_o_row):
-
                 # H to H
-                if i_row_o_row[i] == (base[0], base[1] + len(temp_path), base[2], base[3] + len(temp_path)):
-                    temp_path.append(mv_dict[(base[0], base[1] + len(temp_path), base[2], base[3] + len(temp_path))])
+                if i_row_o_row[i] == (
+                    base[0],
+                    base[1] + len(temp_path),
+                    base[2],
+                    base[3] + len(temp_path),
+                ):
+                    temp_path.append(
+                        mv_dict[
+                            (
+                                base[0],
+                                base[1] + len(temp_path),
+                                base[2],
+                                base[3] + len(temp_path),
+                            )
+                        ]
+                    )
 
                 else:
                     if len(temp_path) > 1:
@@ -305,15 +329,23 @@ def clustered_maps(path, orig_table, target_table):
                 patterns.append(list(temp_path))
 
             if group[0][2] != MAP_TYPE_MER and group[0][2] != MAP_TYPE_SPL:
-
                 temp_path = [mv_dict[i_row_o_row[0]]]
                 base = i_row_o_row[0]
 
                 i = 1
                 while i < len(i_row_o_row):
                     # One to H
-                    if i_row_o_row[i] == (base[0], base[1], base[2], base[3] + len(temp_path)):
-                        temp_path.append(mv_dict[(base[0], base[1], base[2], base[3] + len(temp_path))])
+                    if i_row_o_row[i] == (
+                        base[0],
+                        base[1],
+                        base[2],
+                        base[3] + len(temp_path),
+                    ):
+                        temp_path.append(
+                            mv_dict[
+                                (base[0], base[1], base[2], base[3] + len(temp_path))
+                            ]
+                        )
 
                     else:
                         if len(temp_path) > 1:
@@ -325,7 +357,9 @@ def clustered_maps(path, orig_table, target_table):
                 if len(temp_path) > 1:
                     patterns.append(list(temp_path))
 
-            i_row_o_col = sorted(input_output_set, key=lambda x: (x[0], x[1], x[3], x[2]))
+            i_row_o_col = sorted(
+                input_output_set, key=lambda x: (x[0], x[1], x[3], x[2])
+            )
 
             temp_path = [mv_dict[i_row_o_col[0]]]
             base = i_row_o_col[0]
@@ -334,8 +368,22 @@ def clustered_maps(path, orig_table, target_table):
 
             while i < len(i_row_o_col):
                 # H to V
-                if i_row_o_col[i] == (base[0], base[1] + len(temp_path), base[2] + len(temp_path), base[3]):
-                    temp_path.append(mv_dict[(base[0], base[1] + len(temp_path), base[2] + len(temp_path), base[3])])
+                if i_row_o_col[i] == (
+                    base[0],
+                    base[1] + len(temp_path),
+                    base[2] + len(temp_path),
+                    base[3],
+                ):
+                    temp_path.append(
+                        mv_dict[
+                            (
+                                base[0],
+                                base[1] + len(temp_path),
+                                base[2] + len(temp_path),
+                                base[3],
+                            )
+                        ]
+                    )
 
                 else:
                     if len(temp_path) > 1:
@@ -348,7 +396,9 @@ def clustered_maps(path, orig_table, target_table):
                 patterns.append(list(temp_path))
 
             # Sort column major of input table
-            i_col_o_col = sorted(input_output_set, key=lambda x: (x[1], x[0], x[3], x[2]))
+            i_col_o_col = sorted(
+                input_output_set, key=lambda x: (x[1], x[0], x[3], x[2])
+            )
             temp_path = [mv_dict[i_col_o_col[0]]]
             base = i_col_o_col[0]
 
@@ -356,10 +406,22 @@ def clustered_maps(path, orig_table, target_table):
 
             while i < len(i_col_o_col):
                 # V to V
-                if i_col_o_col[i] == (base[0] + len(temp_path), base[1], base[2] + len(temp_path), base[3]):
-
-                    temp_path.append(mv_dict[(base[0] + len(temp_path), base[1], base[2] + len(temp_path), base[3])])
-
+                if i_col_o_col[i] == (
+                    base[0] + len(temp_path),
+                    base[1],
+                    base[2] + len(temp_path),
+                    base[3],
+                ):
+                    temp_path.append(
+                        mv_dict[
+                            (
+                                base[0] + len(temp_path),
+                                base[1],
+                                base[2] + len(temp_path),
+                                base[3],
+                            )
+                        ]
+                    )
 
                 else:
                     if len(temp_path) > 1:
@@ -374,7 +436,9 @@ def clustered_maps(path, orig_table, target_table):
 
             # Sort column major of output table
 
-            i_col_o_col = sorted(input_output_set, key=lambda x: (x[3], x[2], x[1], x[0]))
+            i_col_o_col = sorted(
+                input_output_set, key=lambda x: (x[3], x[2], x[1], x[0])
+            )
             temp_path = [mv_dict[i_col_o_col[0]]]
             base = i_col_o_col[0]
 
@@ -382,10 +446,22 @@ def clustered_maps(path, orig_table, target_table):
 
             while i < len(i_col_o_col):
                 # V to V
-                if i_col_o_col[i] == (base[0] + len(temp_path), base[1], base[2] + len(temp_path), base[3]):
-
-                    temp_path.append(mv_dict[(base[0] + len(temp_path), base[1], base[2] + len(temp_path), base[3])])
-
+                if i_col_o_col[i] == (
+                    base[0] + len(temp_path),
+                    base[1],
+                    base[2] + len(temp_path),
+                    base[3],
+                ):
+                    temp_path.append(
+                        mv_dict[
+                            (
+                                base[0] + len(temp_path),
+                                base[1],
+                                base[2] + len(temp_path),
+                                base[3],
+                            )
+                        ]
+                    )
 
                 else:
                     if len(temp_path) > 1:
@@ -399,17 +475,23 @@ def clustered_maps(path, orig_table, target_table):
                 patterns.append(list(temp_path))
 
             if group[0][2] != MAP_TYPE_MER and group[0][2] != MAP_TYPE_SPL:
-
                 temp_path = [mv_dict[i_col_o_col[0]]]
                 base = i_col_o_col[0]
 
                 i = 1
                 while i < len(i_col_o_col):
-
                     # One to V
-                    if i_col_o_col[i] == (base[0], base[1], base[2] + len(temp_path), base[3]):
-
-                        temp_path.append(mv_dict[(base[0], base[1], base[2] + len(temp_path), base[3])])
+                    if i_col_o_col[i] == (
+                        base[0],
+                        base[1],
+                        base[2] + len(temp_path),
+                        base[3],
+                    ):
+                        temp_path.append(
+                            mv_dict[
+                                (base[0], base[1], base[2] + len(temp_path), base[3])
+                            ]
+                        )
 
                     else:
                         if len(temp_path) > 1:
@@ -422,7 +504,9 @@ def clustered_maps(path, orig_table, target_table):
                 if len(temp_path) > 1:
                     patterns.append(list(temp_path))
 
-            i_col_o_row = sorted(input_output_set, key=lambda x: (x[1], x[0], x[2], x[3]))
+            i_col_o_row = sorted(
+                input_output_set, key=lambda x: (x[1], x[0], x[2], x[3])
+            )
 
             temp_path = [mv_dict[i_col_o_row[0]]]
             base = i_col_o_row[0]
@@ -431,8 +515,22 @@ def clustered_maps(path, orig_table, target_table):
 
             while i < len(i_col_o_row):
                 # V to H
-                if i_col_o_row[i] == (base[0] + len(temp_path), base[1], base[2], base[3] + len(temp_path)):
-                    temp_path.append(mv_dict[(base[0] + len(temp_path), base[1], base[2], base[3] + len(temp_path))])
+                if i_col_o_row[i] == (
+                    base[0] + len(temp_path),
+                    base[1],
+                    base[2],
+                    base[3] + len(temp_path),
+                ):
+                    temp_path.append(
+                        mv_dict[
+                            (
+                                base[0] + len(temp_path),
+                                base[1],
+                                base[2],
+                                base[3] + len(temp_path),
+                            )
+                        ]
+                    )
 
                 else:
                     if len(temp_path) > 1:
@@ -444,7 +542,9 @@ def clustered_maps(path, orig_table, target_table):
             if len(temp_path) > 1:
                 patterns.append(list(temp_path))
 
-            i_col_o_row = sorted(input_output_set, key=lambda x: (x[2], x[3], x[1], x[0]))
+            i_col_o_row = sorted(
+                input_output_set, key=lambda x: (x[2], x[3], x[1], x[0])
+            )
 
             temp_path = [mv_dict[i_col_o_row[0]]]
             base = i_col_o_row[0]
@@ -453,8 +553,22 @@ def clustered_maps(path, orig_table, target_table):
 
             while i < len(i_col_o_row):
                 # V to H
-                if i_col_o_row[i] == (base[0] + len(temp_path), base[1], base[2], base[3] + len(temp_path)):
-                    temp_path.append(mv_dict[(base[0] + len(temp_path), base[1], base[2], base[3] + len(temp_path))])
+                if i_col_o_row[i] == (
+                    base[0] + len(temp_path),
+                    base[1],
+                    base[2],
+                    base[3] + len(temp_path),
+                ):
+                    temp_path.append(
+                        mv_dict[
+                            (
+                                base[0] + len(temp_path),
+                                base[1],
+                                base[2],
+                                base[3] + len(temp_path),
+                            )
+                        ]
+                    )
 
                 else:
                     if len(temp_path) > 1:
@@ -467,12 +581,10 @@ def clustered_maps(path, orig_table, target_table):
                 patterns.append(list(temp_path))
 
         if group[0][2] == MAP_TYPE_RM:
-
             temp = sorted(input_output_set, key=operator.itemgetter(1))
 
             # Group Removes by Column
             for key, g in itertools.groupby(temp, operator.itemgetter(1)):
-
                 temp_path = []
                 for t in list(g):
                     temp_path.append(mv_dict[t])
@@ -512,9 +624,9 @@ def tokenize(a, first=False):
     if not a:
         return [""]
     if first:
-        return re.split('[' + string.punctuation + string.whitespace + ']*', a, 1)
+        return re.split("[" + string.punctuation + string.whitespace + "]*", a, 1)
     else:
-        return re.split('[' + string.punctuation + string.whitespace + ']*', a)
+        return re.split("[" + string.punctuation + string.whitespace + "]*", a)
 
 
 MAP_TYPE_MV = 1
@@ -577,18 +689,18 @@ def cost_data_transform(str1, str2, use_cpp=cost_data_transform_cpp):
 # Cost of substitution
 def cost_move(node_1, node_2, use_cpp=cost_move_cpp):
     if use_cpp:
-        return foofah_utils.cost_move(node_1.row, node_1.col, node_2.row, node_2.col, node_1.data)
+        return foofah_utils.cost_move(
+            node_1.row, node_1.col, node_2.row, node_2.col, node_1.data
+        )
 
     cost = 0
     # Moving empty space shouldn't count
     if node_1.data:
-
         if math.fabs(node_1.col - node_2.col) == 1 and node_1.row == node_2.row:
             cost += COST_MOVE_CELL_HORIZONTAL_1
 
         elif node_1.row != node_2.row or node_1.col != node_2.col:
             cost += COST_MOVE_CELL
-
 
     else:
         if node_1.row != node_2.row or node_1.col != node_2.col:
@@ -602,17 +714,26 @@ def cost_edit_op(operation, target=None, use_cpp=cost_edit_op_cpp):
     cost = 0
     if use_cpp:
         if operation[0] and operation[1]:
-            return foofah_utils.cost_edit_op(operation[0].row, operation[0].col, operation[0].data, operation[1].row,
-                                             operation[1].col, operation[1].data)
+            return foofah_utils.cost_edit_op(
+                operation[0].row,
+                operation[0].col,
+                operation[0].data,
+                operation[1].row,
+                operation[1].col,
+                operation[1].data,
+            )
 
         elif operation[0]:
-            return foofah_utils.cost_edit_op(operation[0].row, operation[0].col, operation[0].data, -1, -1, "")
+            return foofah_utils.cost_edit_op(
+                operation[0].row, operation[0].col, operation[0].data, -1, -1, ""
+            )
 
         elif operation[1]:
-            return foofah_utils.cost_edit_op(-1, -1, "", operation[1].row, operation[1].col, operation[1].data)
+            return foofah_utils.cost_edit_op(
+                -1, -1, "", operation[1].row, operation[1].col, operation[1].data
+            )
 
         else:
-
             return foofah_utils.cost_edit_op(-1, -1, "", -1, -1, "")
 
     if operation[0] and operation[1]:
@@ -651,7 +772,9 @@ def cost_edit_path(edit_path, target=None):
 
     for operation in edit_path:
         if operation[0] and operation[1]:
-            new_cost, sub_type = cost_data_transform(operation[0].data, operation[1].data)
+            new_cost, sub_type = cost_data_transform(
+                operation[0].data, operation[1].data
+            )
 
             cost += new_cost
 
@@ -666,7 +789,6 @@ def cost_edit_path(edit_path, target=None):
         elif operation[0] and not operation[0].data:
             cost += COST_DELETE_EMPTY
         elif operation[1] and operation[1].data:
-
             cost += COST_IMPOSSIBLE
 
         else:
@@ -737,14 +859,12 @@ def graph_edit_distance_greedy(u, v):
     unprocessed_u = list(u.nodes())
     unprocessed_v = list(v.nodes())
 
-
     if possible_path[path_idx][0] in unprocessed_u:
         unprocessed_u.remove(possible_path[path_idx][0])
 
     unprocessed_v.pop(0)
 
     while unprocessed_v and unprocessed_u:
-
         v_next = unprocessed_v.pop(0)
 
         possible_path = []
@@ -753,7 +873,6 @@ def graph_edit_distance_greedy(u, v):
         if_exact_match_found = False
 
         for u_next in unprocessed_u:
-
             edit_op = (u_next, v_next)
             new_cost, map_type = cost_edit_op(edit_op, v)
             if map_type == MAP_TYPE_MV:
@@ -788,9 +907,11 @@ def graph_edit_distance_greedy(u, v):
                 break
 
         # We already don't have a good choice in unprocessed v, let's pick one from the old choice
-        if possible_path[path_idx][2] == MAP_TYPE_UNKNOWN or possible_path[path_idx][2] == MAP_TYPE_SPL or \
-                        possible_path[path_idx][2] == MAP_TYPE_MER:
-
+        if (
+            possible_path[path_idx][2] == MAP_TYPE_UNKNOWN
+            or possible_path[path_idx][2] == MAP_TYPE_SPL
+            or possible_path[path_idx][2] == MAP_TYPE_MER
+        ):
             possible_path_new = []
             possible_path_cost_new = []
 
@@ -856,7 +977,6 @@ def graph_edit_distance_greedy(u, v):
 
     # If unprocessed_v is empty, but unprocessed_u is not, we kick the rest of unprocessed u out
     if unprocessed_u and not unprocessed_v:
-
         for u_next in unprocessed_u:
             edit_op = (u_next, None)
             new_cost, map_type = cost_edit_op(edit_op, v)

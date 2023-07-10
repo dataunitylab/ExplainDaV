@@ -32,18 +32,20 @@ def contains_empty_col(table, col_id):
     return False
 
 
-def unlikely_introduce_symbols(cur_node,parent_node,goal_node):
+def unlikely_introduce_symbols(cur_node, parent_node, goal_node):
     if not parent_node:
         return False
 
-    if set(cur_node.prop_symbols) - set(goal_node.prop_symbols) > set(parent_node.prop_symbols) - set(goal_node.prop_symbols):
+    if set(cur_node.prop_symbols) - set(goal_node.prop_symbols) > set(
+        parent_node.prop_symbols
+    ) - set(goal_node.prop_symbols):
         return True
     return False
 
 
 def unlikely_unfolds(opname, contents, target):
-    if (opname == 'unfold' or opname == 'unfold_header')and len(contents) < len(target):
+    if (opname == "unfold" or opname == "unfold_header") and len(contents) < len(
+        target
+    ):
         return True
     return False
-
-

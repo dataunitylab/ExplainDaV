@@ -1,15 +1,15 @@
 # import editdistance
-from timeit import default_timer as timer
-from .operators import add_extract
-from .prune_rules import invalid_node, unlikely_introduce_symbols
-from collections import defaultdict
-import Levenshtein
-from collections import Counter
-import numpy as np
-import string
 import itertools
+import string
+from collections import Counter, defaultdict
+from timeit import default_timer as timer
+
+import Levenshtein
+import numpy as np
 
 from .foofah_table_graph import TableGraph
+from .operators import add_extract
+from .prune_rules import invalid_node, unlikely_introduce_symbols
 
 # import foofah_utils
 
@@ -19,7 +19,7 @@ MAX_SYNTAX = 4
 # CPP = True
 CPP = False
 
-NODE_COUNTER = {'nodes': 0}
+NODE_COUNTER = {"nodes": 0}
 
 alphanumeric_set = set(string.ascii_letters) | set(string.digits)
 
@@ -53,7 +53,7 @@ def count_matches(target, contents):
     target_str = chr(0).join(target)
     count = 0
     for c in contents:
-        if c == '' or c not in target_str:
+        if c == "" or c not in target_str:
             target_in_here = False
             for t in target:
                 if t in c:
@@ -86,8 +86,10 @@ class FoofahNode:
 
     prop_if_col_contains_empty_cells = None
 
-    def __init__(self, contents, op, parent, times={}, node_counter=NODE_COUNTER, h_debug=False):
-        self.node_id = node_counter['nodes']
+    def __init__(
+        self, contents, op, parent, times={}, node_counter=NODE_COUNTER, h_debug=False
+    ):
+        self.node_id = node_counter["nodes"]
         self.contents = contents
         self.parent = parent
         self.operation = op
@@ -105,7 +107,9 @@ class FoofahNode:
 
         self.prop_chars = alphanumeric_set & set(str(self.contents))
 
-        self.prop_symbols = symbol_set & set(str(''.join(y for x in self.contents for y in x)))
+        self.prop_symbols = symbol_set & set(
+            str("".join(y for x in self.contents for y in x))
+        )
 
         # Set of cell data in current table
         self.prop_data = set(itertools.chain(*self.contents))
@@ -120,26 +124,32 @@ class FoofahNode:
         self.num_cols = len(self.contents[0])
 
         if len(times) == 0:
-            times['children'] = []
-            times['scores'] = []
-            times['ops'] = {}
-            times['prune'] = []
-            times['prune2'] = []
-            times['child_obj'] = []
-            times['loop'] = []
+            times["children"] = []
+            times["scores"] = []
+            times["ops"] = {}
+            times["prune"] = []
+            times["prune2"] = []
+            times["child_obj"] = []
+            times["loop"] = []
         self.times = times
 
         self.h_score = -1
 
-        node_counter['nodes'] += 1
+        node_counter["nodes"] += 1
 
-        if self.parent is not None and self.parent.operation[0]['name'] == 'split1 ]' and op[0]['name'] == 'append ]':
-            print((self.parent.operation[0]['name'], op[0]['name']))
+        if (
+            self.parent is not None
+            and self.parent.operation[0]["name"] == "split1 ]"
+            and op[0]["name"] == "append ]"
+        ):
+            print((self.parent.operation[0]["name"], op[0]["name"]))
 
         self.confidence = 1.0
 
     # @profile
-    def make_children(self, ops, debug=False, bound=float("inf"), p1=True, p2=True, p3=True):
+    def make_children(
+        self, ops, debug=False, bound=float("inf"), p1=True, p2=True, p3=True
+    ):
         start = timer()
         num_cols = len(self.contents[0])
 
@@ -156,17 +166,21 @@ class FoofahNode:
         # If they are, remove all operators for syntax transformation
         if not table_values_is_subset(FoofahNode.goal_node, self):
             # A brief estimate of whether extract should be added
-            ops += add_extract(self.contents, FoofahNode.goal_node.contents, cur_node=self, goal_node=FoofahNode.goal_node)
+            ops += add_extract(
+                self.contents,
+                FoofahNode.goal_node.contents,
+                cur_node=self,
+                goal_node=FoofahNode.goal_node,
+            )
 
         # Each operation takes in a column index, so we need to apply
         # each op to every possible column in the current state
         for op in ops:
-
             # For those table level operations that do not need a column parameter
-            if not op['if_col']:
-                params = op['params']
+            if not op["if_col"]:
+                params = op["params"]
                 op_obj = (op, None, dict(params))
-                result = op['fxn'](self.contents)
+                result = op["fxn"](self.contents)
                 child = self.make_child_node(result, self, op_obj, p1, p2, p3)
 
                 if child:
@@ -175,9 +189,8 @@ class FoofahNode:
             else:
                 # Try different columns for other operations
                 for i in range(num_cols):
-
-                    result = op['fxn'](self.contents, i)
-                    params = op['params']
+                    result = op["fxn"](self.contents, i)
+                    params = op["params"]
                     params[1] = str(i)
                     op_obj = (op, i, dict(params))
                     child = self.make_child_node(result, self, op_obj, p1, p2, p3)
@@ -185,7 +198,7 @@ class FoofahNode:
                     if child:
                         children.append(child)
 
-        self.times['children'].append(timer() - start)
+        self.times["children"].append(timer() - start)
 
         return children
 
@@ -195,7 +208,12 @@ class FoofahNode:
 
         child = FoofahNode(table, op_obj, parent_node, parent_node.times)
 
-        if p1 and unlikely_introduce_symbols(child, self, FoofahNode.goal_node) or (p2 and invalid_node(child, FoofahNode.goal_node)) or (p3 and child.identical(parent_node)):
+        if (
+            p1
+            and unlikely_introduce_symbols(child, self, FoofahNode.goal_node)
+            or (p2 and invalid_node(child, FoofahNode.goal_node))
+            or (p3 and child.identical(parent_node))
+        ):
             return None
 
         return child
@@ -227,10 +245,10 @@ class FoofahNode:
     def get_h_score_intuitive(self, debug=False):
         # STEP 0
         # There are some scenarios where we know for sure how to solve
-        # 
+        #
         # Table is exactly the same
         if self == FoofahNode.goal_node:
-            self.confidence = float('inf')
+            self.confidence = float("inf")
             return 0
 
         syntax = 0
@@ -250,7 +268,6 @@ class FoofahNode:
         return syntax + layout + clean
 
     def get_h_score_rule(self, debug=False, heuristic_no=2):
-
         if heuristic_no == 1:
             return 1
         elif heuristic_no == 2:
@@ -267,7 +284,6 @@ class FoofahNode:
                     h_vals.append(h)
 
                 if len(h_vals) > 1:
-
                     return median(h_vals)
 
                 else:
@@ -282,17 +298,24 @@ class FoofahNode:
                     cost = 1
 
                 # Tranpose is needed
-                if self.num_rows == FoofahNode.goal_node.num_cols and self.num_cols == FoofahNode.goal_node.num_rows:
+                if (
+                    self.num_rows == FoofahNode.goal_node.num_cols
+                    and self.num_cols == FoofahNode.goal_node.num_rows
+                ):
                     return cost + 1
 
                 # unfold, fold, row concatenation
-                elif self.num_rows % FoofahNode.goal_node.num_rows == 0 or self.num_rows % (
-                    FoofahNode.goal_node.num_rows - 1) == 0:
+                elif (
+                    self.num_rows % FoofahNode.goal_node.num_rows == 0
+                    or self.num_rows % (FoofahNode.goal_node.num_rows - 1) == 0
+                ):
                     return cost + 1
 
                 # fold or fold_header or row concate is needed
-                elif FoofahNode.goal_node.num_rows % self.num_rows == 0 or FoofahNode.goal_node.num_rows % (
-                    self.num_rows - 1) == 0:
+                elif (
+                    FoofahNode.goal_node.num_rows % self.num_rows == 0
+                    or FoofahNode.goal_node.num_rows % (self.num_rows - 1) == 0
+                ):
                     return cost + 1
 
                 # Could be remove_empty_rows
@@ -301,15 +324,15 @@ class FoofahNode:
 
                 # Otherwise, 2 operations might be used
                 else:
-
                     return cost + 2
 
         else:
             h_vals = []
 
             # number of rows are the same in the target table, current table and parent table
-            if (self.parent is None or len(self.contents) == len(self.parent.contents)) and len(
-                    self.contents) == FoofahNode.goal_node.num_rows:
+            if (
+                self.parent is None or len(self.contents) == len(self.parent.contents)
+            ) and len(self.contents) == FoofahNode.goal_node.num_rows:
                 # If the current table is already the target table, nothing needs to be done
                 if self == FoofahNode.goal_node:
                     return 0
@@ -335,16 +358,23 @@ class FoofahNode:
                     return 1
 
                 # Tranpose is needed
-                elif len(self.contents) == FoofahNode.goal_node.num_cols and self.num_cols == FoofahNode.goal_node.num_rows:
+                elif (
+                    len(self.contents) == FoofahNode.goal_node.num_cols
+                    and self.num_cols == FoofahNode.goal_node.num_rows
+                ):
                     return 1 + self.get_row_h_score(0)
                 # unfold or unfold_header is needed
-                elif len(self.contents) % FoofahNode.goal_node.num_rows == 0 or len(self.contents) % (
-                    FoofahNode.goal_node.num_rows - 1) == 0:
+                elif (
+                    len(self.contents) % FoofahNode.goal_node.num_rows == 0
+                    or len(self.contents) % (FoofahNode.goal_node.num_rows - 1) == 0
+                ):
                     return 1 + self.get_row_h_score(0)
 
                 # fold or fold_header is needed
-                elif FoofahNode.goal_node.num_rows % len(self.contents) == 0 or FoofahNode.goal_node.num_rows % (
-                    len(self.contents) - 1) == 0:
+                elif (
+                    FoofahNode.goal_node.num_rows % len(self.contents) == 0
+                    or FoofahNode.goal_node.num_rows % (len(self.contents) - 1) == 0
+                ):
                     return 1 + self.get_row_h_score(0)
 
                 # We don't know what operations might be used
@@ -377,13 +407,14 @@ class FoofahNode:
             h_score = 0
 
             if cur_row_count == tar_row_count:
-
                 row_temp = list(row)
                 targ_row_temp = list(targ_row)
 
                 p = 0
                 while p < len(targ_row_temp) - 1:
-                    if row_temp.index(targ_row_temp[p]) < row_temp.index(targ_row_temp[p + 1]):
+                    if row_temp.index(targ_row_temp[p]) < row_temp.index(
+                        targ_row_temp[p + 1]
+                    ):
                         row_temp.remove(targ_row_temp[p])
                         p += 1
                     else:
@@ -393,7 +424,6 @@ class FoofahNode:
 
             # We are in a more complex situation where more fine grained analysis is needed.
             else:
-
                 # Find intersection of two cell data
                 cur_row_temp = list(row)
                 tar_row_temp = list(targ_row)
@@ -420,7 +450,8 @@ class FoofahNode:
                     if cell_data in temp_str:
                         merge_candidate.append(cell_data)
 
-                if "" in merge_candidate: merge_candidate.remove("")
+                if "" in merge_candidate:
+                    merge_candidate.remove("")
 
                 merge_candidate_2 = set(merge_candidate)
                 for a in merge_candidate:
@@ -428,13 +459,17 @@ class FoofahNode:
                         if a != b:
                             if a + b in temp_str:
                                 h_score += 1
-                                if a in merge_candidate_2: merge_candidate_2.remove(a)
-                                if b in merge_candidate_2: merge_candidate_2.remove(b)
+                                if a in merge_candidate_2:
+                                    merge_candidate_2.remove(a)
+                                if b in merge_candidate_2:
+                                    merge_candidate_2.remove(b)
                             else:
                                 if temp_str.index(a) + len(a) + 1 == temp_str.index(b):
                                     h_score += 1
-                                    if a in merge_candidate_2: merge_candidate_2.remove(a)
-                                    if b in merge_candidate_2: merge_candidate_2.remove(b)
+                                    if a in merge_candidate_2:
+                                        merge_candidate_2.remove(a)
+                                    if b in merge_candidate_2:
+                                        merge_candidate_2.remove(b)
 
                 cur_row_temp = [x for x in cur_row_temp if x not in merge_candidate_2]
                 tar_row_temp = [x for x in tar_row_temp if x not in merge_candidate_2]
@@ -473,7 +508,7 @@ class FoofahNode:
                 self.h_score = 0
                 # This is the root node. TODO: this is sort of hacky
                 if parent_row is None:
-                    self.h_score = float('inf')
+                    self.h_score = float("inf")
 
                     self.h_score = 1.0
 
@@ -496,7 +531,9 @@ class FoofahNode:
 
                     p = 0
                     while p < len(targ_row_temp) - 1:
-                        if row_temp.index(targ_row_temp[p]) < row_temp.index(targ_row_temp[p + 1]):
+                        if row_temp.index(targ_row_temp[p]) < row_temp.index(
+                            targ_row_temp[p + 1]
+                        ):
                             row_temp.remove(targ_row_temp[p])
                             p += 1
                         else:
@@ -506,7 +543,9 @@ class FoofahNode:
                     h_score_source = 2
 
                 # Calculate how many copies and drops are needed. This is calculated only when copies and drops are the only operations to be done.
-                elif (set(row) < set(targ_row) or set(targ_row) < set(row)) and Counter(row) != Counter(targ_row):
+                elif (set(row) < set(targ_row) or set(targ_row) < set(row)) and Counter(
+                    row
+                ) != Counter(targ_row):
                     cr = Counter(row)
                     ct = Counter(targ_row)
                     for item in set(row):
@@ -516,8 +555,7 @@ class FoofahNode:
 
                 # If it's probably a dropped column, use the difference in
                 # the number of columns.
-                elif (len(row) > len(targ_row) and
-                          is_subset(targ_row, row)):
+                elif len(row) > len(targ_row) and is_subset(targ_row, row):
                     self.h_score = abs(len(row) - len(targ_row))
                     h_score_source = 4
 
@@ -527,7 +565,6 @@ class FoofahNode:
                     h_score_source = 5
 
                 else:
-
                     content_str = chr(1).join(row)
                     target_str = chr(1).join(targ_row)
                     count = 0
@@ -536,7 +573,7 @@ class FoofahNode:
                     drop_cands = []
                     dupes = set([])
                     for c in row:
-                        if c == '':
+                        if c == "":
                             count += 1
                         else:
                             for t in targ_row:
@@ -558,7 +595,8 @@ class FoofahNode:
                             targ_cnt = target_str.count(c)
                             if targ_cnt > 0 and contents_cnt - targ_cnt > 0:
                                 if c not in dupes:
-                                    if H_DEBUG: print(("Dupe drop:", c, 1))
+                                    if H_DEBUG:
+                                        print(("Dupe drop:", c, 1))
                                     count += 1
                                     dupes.add(c)
 
@@ -575,7 +613,8 @@ class FoofahNode:
                         if len(v) > 1:
                             joined = chr(1).join(v)
 
-                            if H_DEBUG: print(("Joins:", k, v, editdistance.eval(joined, k)))
+                            if H_DEBUG:
+                                print(("Joins:", k, v, editdistance.eval(joined, k)))
                             count += editdistance.eval(joined, k)
                             used_joins.add(k)
                         elif len(in_join_targs[v[0]]) == 1:  # no duplicate matches
@@ -584,7 +623,8 @@ class FoofahNode:
 
                             used_joins.add(k)
 
-                            if H_DEBUG: print(("Add chars:", k, v, count))
+                            if H_DEBUG:
+                                print(("Add chars:", k, v, count))
 
                     no_drops = set([])
                     also_no_drops = set([])  # this is for CASE4
@@ -596,31 +636,47 @@ class FoofahNode:
                         for d in drop_cands:
                             e_dist = 0
                             for eo in Levenshtein.editops(t, d):
-                                if eo[0] == 'replace':
+                                if eo[0] == "replace":
                                     e_dist += 2
                                 else:
                                     e_dist += 1
 
-                            if H_DEBUG: print(("START:", t, "|", d, e_dist))
+                            if H_DEBUG:
+                                print(("START:", t, "|", d, e_dist))
                             if d not in no_drops and t in d:
-                                if H_DEBUG: print(("* CASE1:", t, d, e_dist, 1, count))
+                                if H_DEBUG:
+                                    print(("* CASE1:", t, d, e_dist, 1, count))
                                 count += 2
                                 no_drops.add(d)
-                            elif d not in no_drops and d in t and e_dist < len(t) and e_dist >= len(d):
-                                if H_DEBUG: print(("* CASE2:", t, "|", d, e_dist, 2, count))
+                            elif (
+                                d not in no_drops
+                                and d in t
+                                and e_dist < len(t)
+                                and e_dist >= len(d)
+                            ):
+                                if H_DEBUG:
+                                    print(("* CASE2:", t, "|", d, e_dist, 2, count))
                                 count += 2  # split and drop (or similar)
                                 no_drops.add(d)
-                            elif d not in no_drops and d in t and e_dist < len(t) and e_dist < len(d):
-                                if H_DEBUG: print(("* CASE3:", t, d, e_dist, e_dist, count))
+                            elif (
+                                d not in no_drops
+                                and d in t
+                                and e_dist < len(t)
+                                and e_dist < len(d)
+                            ):
+                                if H_DEBUG:
+                                    print(("* CASE3:", t, d, e_dist, e_dist, count))
                                 count += e_dist  # char. operations
                                 no_drops.add(d)
                             elif e_dist >= len(t) and e_dist < len(d):
-                                if H_DEBUG: print(("* CASE4:", t, d, e_dist))
+                                if H_DEBUG:
+                                    print(("* CASE4:", t, d, e_dist))
                                 count += 3  # include a split in here
 
                                 also_no_drops.add(d)
                             elif e_dist < len(t) and e_dist < len(d):
-                                if H_DEBUG: print(("* CASE5:", t, d, e_dist))
+                                if H_DEBUG:
+                                    print(("* CASE5:", t, d, e_dist))
                                 if min_edists[t] == 0 or min_edists[t] > e_dist:
                                     min_edists[t] = e_dist
                                 no_drops.add(d)
@@ -653,7 +709,7 @@ class FoofahNode:
 
             if H_DEBUG:
                 print(("h_score_source:", h_score_source))
-            self.times['scores'].append(timer() - start)
+            self.times["scores"].append(timer() - start)
             if debug:
                 return self.h_score, h_score_source
             else:
@@ -698,16 +754,17 @@ class FoofahNode:
         return True
 
     def __str__(self):
-
-        if 'num_params' in list(self.operation[0].keys()):
-            if self.operation[0]['num_params'] == 1:
-                return self.operation[0]['name']
-            elif self.operation[0]['num_params'] == 2:
-                return self.operation[0]['name'] + " on column " + str(self.operation[1])
+        if "num_params" in list(self.operation[0].keys()):
+            if self.operation[0]["num_params"] == 1:
+                return self.operation[0]["name"]
+            elif self.operation[0]["num_params"] == 2:
+                return (
+                    self.operation[0]["name"] + " on column " + str(self.operation[1])
+                )
             else:
-                return self.operation[0]['name']
+                return self.operation[0]["name"]
         else:
-            return self.operation[0]['name']
+            return self.operation[0]["name"]
 
     def __cmp__(self, other):
         score = (self.f_score > other.f_score) - (self.f_score < other.f_score)
@@ -727,7 +784,6 @@ def get_cols_from_table(table):
     new_table = list(map(list, list(zip(*table))))
 
     for col in new_table:
-
         cols.append(tuple(col))
         col_set = set(col)
         if "" in col_set:

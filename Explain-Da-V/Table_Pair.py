@@ -1,9 +1,8 @@
-from Table import Table
 import pandas as pd
+from Table import Table
 
 
 class Table_Pair:
-
     def __init__(self, T: Table, T_prime: Table):
         self.T = T
         self.T_prime = T_prime
