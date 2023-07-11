@@ -11,12 +11,10 @@ from .foofah_table_graph import TableGraph
 from .operators import add_extract
 from .prune_rules import invalid_node, unlikely_introduce_symbols
 
-# import foofah_utils
 
 MAX_TABLE_OPS = 3
 MAX_SYNTAX = 4
 
-# CPP = True
 CPP = False
 
 NODE_COUNTER = {"nodes": 0}

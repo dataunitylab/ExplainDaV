@@ -10,62 +10,45 @@ import func_timeout
 import ml_utils
 import numpy as np
 import pandas as pd
-from config import *
+from config import (
+    column_nan_threshold,
+    duplicate_column_overlap_threshold,
+    foofah_time_limit,
+    max_size_lhd_fd,
+    new_inf,
+    number_of_rows_for_foofah,
+    textual_attributes_with_small_domain_threshold,
+)
 from Foofah import foofah
 from Foofah.foofah_libs import operators
 from Foofah.foofah_libs import operators as Op
 from Foofah.foofah_libs.operators import *
-from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import OneHotEncoder
-from Table import Table
 from Table_Pair import Table_Pair
 
 
 def find_exact_attribute_match(T_pair: Table_Pair):
     return T_pair.sigma_A
-    # T_A_vecs = T_pair.T.A_vecs
-    # T_prime_A_vecs = T_pair.T_prime.A_vecs
-    # sigma_A = T_pair.sigma_A
-    # sigma_A_exact = list()
-    # for c in sigma_A:
-    #     T_A_vec = T_A_vecs[c[0]]
-    #     T_prime_A_vec = T_prime_A_vecs[c[1]]
-    #     if np.array_equal(T_A_vec, T_prime_A_vec):
-    #         sigma_A_exact.append(c)
-    # return sigma_A_exact
 
 
 def find_attribute_match(T_pair: Table_Pair, one_to_one=True):
     T = T_pair.T
     T_prime = T_pair.T_prime
     is_record_match = True
-    # if 'orig_index' not in T_prime.table.columns:
-    #     is_record_match = False
-    ##############
-    # Some magic #
-    ##############
-    #### Temp:
-    # print(T.A)
-    # print(T_prime.A)
+
     if one_to_one:
         sigma_A = list()
-        # print(T.headers)
-        # print(T_prime.headers)
         for i_left, h_left in enumerate(T.headers):
             for i_right, h_right in enumerate(T_prime.headers):
                 if h_left == h_right:
-                    # if set(T.table[h_left]) == set(T_prime.table[h_right]):
                     sigma_A += [
                         (i_left, i_right),
                     ]
-        # sigma_A = list(zip(T.A, T_prime.A))  # temp
     else:
         sigma_A = list(zip(T.A, T_prime.A))  # temp
     if "orig_index" not in T_prime.table.columns:
         is_record_match = False
         sigma_A = list()
-        # print(T.headers)
-        # print(T_prime.headers)
         for i_left, h_left in enumerate(T.headers):
             for i_right, h_right in enumerate(T_prime.headers):
                 if h_left == h_right:
@@ -73,8 +56,7 @@ def find_attribute_match(T_pair: Table_Pair, one_to_one=True):
                         sigma_A += [
                             (i_left, i_right),
                         ]
-    ###
-    # print(sigma_A)
+
     T_pair.update_attribute_match(sigma_A)
 
     sigma_A_exact = find_exact_attribute_match(T_pair)
@@ -85,40 +67,20 @@ def find_attribute_match(T_pair: Table_Pair, one_to_one=True):
 
 def find_exact_record_match(T_pair: Table_Pair):
     return T_pair.sigma_r
-    # T_r_vecs = T_pair.T.r_vecs
-    # T_prime_r_vecs = T_pair.T_prime.r_vecs
-    # sigma_r = T_pair.sigma_r
-    # sigma_r_exact = list()
-    # for c in sigma_r:
-    #     T_r_vec = T_r_vecs[c[0]]
-    #     T_prime_r_vec = T_prime_r_vecs[c[1]]
-    #     if np.array_equal(T_r_vec, T_prime_r_vec):
-    #         sigma_r_exact.append(c)
-    # return sigma_r_exact
 
 
 def find_record_match(T_pair: Table_Pair, one_to_one=True):
     T = T_pair.T
     T_prime = T_pair.T_prime
-    # T_r = T.projected_table
-    # T_prime_r = T_prime.projected_table
-    # T_r_ids = T.r
-    # T_prime_r_ids = T_prime.r
-    ##############
-    # Some magic #
-    ##############
-    #### Temp:
-    # sigma_r = list(zip(T_r.dropna().index.to_numpy(), T_prime_r.index.to_numpy()))  # temp
-    # print('!!!remember that the matching is only for removed rows!!!')
+
     if one_to_one:
-        # sigma_r = list(zip(T_prime.table['orig_index'].to_numpy(), T_prime.table.index.to_numpy()))
         merged = T.table.merge(
             T_prime.table, left_index=True, right_on=["orig_index"], how="inner"
         )
         sigma_r = list(zip(merged["orig_index"].to_numpy(), merged.index.to_numpy()))
     else:
         sigma_r = []
-    ###
+
     T_pair.update_record_match(sigma_r)
     sigma_r_exact = find_exact_record_match(T_pair)
     T_pair.update_exact_record_match(sigma_r_exact)
@@ -127,7 +89,6 @@ def find_record_match(T_pair: Table_Pair, one_to_one=True):
 
 def get_cardinality(df, attributes):
     cardinalities = {}
-    # print(attributes)
     target = attributes[-1]
     for a_i in attributes:
         col_cardinality = len(df.iloc[:, a_i].drop_duplicates())
@@ -175,14 +136,7 @@ def parse_fds(target_attribute):
             fdDict = json.loads(line)
             determinants = fdDict["determinant"]["columnIdentifiers"]
             dependant = fdDict["dependant"]
-            #             print(determinants)
-            #             print(dependant)
-            #             print('--')
-            tableName = dependant["tableIdentifier"]
             rhs = dependant["columnIdentifier"]
-            # print([int(i["columnIdentifier"]) for i in determinants])
-            # print(rhs)
-            # print()
             if rhs == str(target_attribute):
                 lhs = [int(i["columnIdentifier"]) for i in determinants]
                 if len(lhs) <= max_size_lhd_fd:
@@ -229,8 +183,6 @@ def find_fd(
     if target_table == "R":
         avilable_df_attributes = T_pair.RHCA
         avilable_df_rows = T_pair.RHCr
-        # avilable_df = T_pair.T_prime.table.iloc[avilable_df_rows, avilable_df_attributes]
-        # target_attribute_values = T_pair.T_prime.table.iloc[:, target_attribute]
         combined_df = T_pair.T_prime.table.iloc[
             avilable_df_rows,
             avilable_df_attributes
@@ -244,10 +196,6 @@ def find_fd(
         else:
             avilable_df_attributes = T_pair.LHCA
         avilable_df_rows = T_pair.LHCr
-        # estimated_keys = find_estimated_keys(T_pair.T.table)
-        # print(estimated_keys)
-        # avilable_df = T_pair.T.table.iloc[avilable_df_rows, avilable_df_attributes]
-        # target_attribute_values = T_pair.T.table.iloc[:, target_attribute]
         combined_df = T_pair.T.table.iloc[
             avilable_df_rows,
             avilable_df_attributes
@@ -255,19 +203,13 @@ def find_fd(
                 target_attribute,
             ],
         ]
-        # print(combined_df)
-        # combined_df = T_pair.T.table.iloc[avilable_df_rows, [0, 1, 8]]
-        # print(combined_df)
-    #     print(avilable_df_attributes)
-    #     print(len(combined_df['country'].unique()))
-    #     print(len(combined_df['country_abbv'].unique()))
+
     candidate_orig_attribute_sets = run_fdep(combined_df)
     if candidate_orig_attribute_sets:
         return candidate_orig_attribute_sets
     elif subset_of_origin:
         return []
     else:
-        # return [avilable_df_attributes]
         return []
 
 
@@ -301,14 +243,14 @@ def get_task_type_and_solve(
         X_test = T_pair_generalization.T_prime.table.iloc[:, attribute_set]
     y_train = T_pair_validation.T_prime.table.iloc[:, attribute_2_b_explained]
     y_test = T_pair_generalization.T_prime.table.iloc[:, attribute_2_b_explained]
-    # X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size_for_cv, random_state=42)
+
     solutions = {}
     if any([pd.api.types.is_string_dtype(_type) for _type in LHS_types]):
         features_task = "TEXTUAL"
     else:
         features_task = "NUMERIC"
     print("Features:", features_task, "| Target:", target_task)
-    # print(run_only_reg)
+
     if run_only_reg and features_task != "NUMERIC":
         print("skipping (only regression)")
         return solutions
@@ -324,7 +266,6 @@ def get_task_type_and_solve(
             X_train, y_train, X_test, y_test, target_task, grouping=False
         )
         if len(sols) != 0:
-            # print(sols)
             for i, a_i in reversed(list(enumerate(new_feature_names))):
                 sols = {sol.replace("x" + str(i), a_i): sols[sol] for sol in sols}
             for i, a_i in enumerate(
@@ -504,19 +445,11 @@ def data_transformation_detection(
     X_train, y_train, X_test, y_test, what_to_explain="columns", target_type="TEXTUAL"
 ):
     start = time.time()
-    # print('Using Foofah')
-    # if 'variety' not in str(pd.DataFrame(X_train).columns):
-    #     return None, None, None, None, None, None
     foofah_input = '{"InputTable": '
     foofah_input += str(
         X_train.head(number_of_rows_for_foofah).to_json(orient="values")
     )
     foofah_input += ', "OutputTable": '
-    # ROEE: Only required column:
-    # foofah_input += str(pd.DataFrame(y.head(number_of_rows_for_foofah)).to_json(orient="values"))
-    # ROEE: Required column + Context:
-    # print(X_train)
-    # print(y_train)
     if what_to_explain == "full":
         foofah_input += str(
             y_train.head(number_of_rows_for_foofah).to_json(orient="values")
@@ -534,8 +467,6 @@ def data_transformation_detection(
                 y_train.head(number_of_rows_for_foofah).to_json(orient="values")
             )
     foofah_input += ', "NumSamples": 1'
-    # foofah_input += ', "TestName": "orig_{}_target_{}"'.format(str(pd.DataFrame(X_train).columns.tolist()),
-    #                                                            str(y_train.name))
     foofah_input += ', "TestName": "1"'
     foofah_input += ', "TestingTable": '
     foofah_input += str(X_test.head(number_of_rows_for_foofah).to_json(orient="values"))
@@ -559,21 +490,12 @@ def data_transformation_detection(
                 y_test.head(number_of_rows_for_foofah).to_json(orient="values")
             )
             foofah_input += "}"
-    # print(foofah_input)
+
     with open("task_for_foofah.json", "w") as f:
         f.write(foofah_input)
-    # print(str(X.head(number_of_rows_for_foofah).to_json(orient="values")))
-    # print(str(y.head(number_of_rows_for_foofah).to_json(orient="values")))
-    # print(str(pd.DataFrame(X_train.join(y_train).head(number_of_rows_for_foofah)).to_json(orient="values")))
     is_solved = foofah.main(
         "task_for_foofah.json", foofah_time_limit, what_to_explain, target_type, True
     )
-    # with open('task_for_foofah.json', 'rb') as f:
-    #     test_data = json.load(f)
-    # raw_data = [list(map(str, x)) for x in test_data['InputTable']]
-    # print(raw_data)
-    # print(type(X))
-    # print(X.columns)
     eval_explainabilty_size = 0
     eval_explainabilty_cognitive_chunks = 1
     seen_ops = []
@@ -584,8 +506,7 @@ def data_transformation_detection(
                 transformation += op
                 eval_explainabilty_cognitive_chunks += 1
                 op_striped = op.split("(")[0].split(" = ")[1]
-                # if op_striped not in seen_ops:
-                #     seen_ops.append(op_striped)
+
                 seen_ops.append(op_striped)
                 op_lines = inspect.getsource(
                     getattr(operators, op_striped)
@@ -599,22 +520,11 @@ def data_transformation_detection(
                     ]
                 )
 
-                # f, param = op.split(' ', 1)
-                # param = [raw_data, ] + [int(p) if p.isnumeric() else p
-                #                         for p in param.replace('\n', '').split(',')]
-                # print(f)
-                # print(param)
-                # Op.PRUNE_1 = False
-                # print(f_split_first(raw_data, 0, ' '))
-                # print(globals()[f](*param))
-        # print(transformation)
         eval_explainabilty_repeated_terms = len(seen_ops)
         eval_explainabilty_cognitive_chunks = len(X_train.columns)
         eval_validation = 1.0
         with open("test_results/validate/exp0_results_1_1.json", "r") as f:
             eval_generalization = float(bool(dict(json.load(f))["Success"]))
-        # eval_generalization = 1.0
-        # eval_simplicity = 0.9
         eval_explainabilty = [
             eval_explainabilty_size,
             eval_explainabilty_repeated_terms,
@@ -631,10 +541,6 @@ def data_transformation_detection(
         }
     else:
         return None
-    # foofah.main('examples/exp0_agriculture_5.txt')
-    # print('To-Be-Implemented')
-    # print('-- Since we have textual values in both the target'
-    #       ' and features, perform \"standard\" data transformation detection')
 
 
 def data_transformation_detection_column_removal(
@@ -846,9 +752,6 @@ def data_transformation_detection_rows_addition(
 
 def feature_generation_and_then_transformation_detection():
     print("To-Be-Implemented")
-    # print('-- Since we have some textual features are numeric'
-    #       ' and/or categorial target, perform feature generation'
-    #       ' to detect origin and then \"standard\" data transformation detection')
 
 
 def learn_data_transformation(
@@ -862,9 +765,7 @@ def learn_data_transformation(
     include_aggregated=False,
     non_numeric=None,
 ):
-    # print(y_train)
     if only_regression:
-        # print('-- Solving (all) as REGRESSION')
         return ml_utils.learn_data_transformation_REGRESSION(
             X_train,
             y_train,
@@ -875,17 +776,14 @@ def learn_data_transformation(
             non_numeric,
         )
     if y_type == "BINARY_CLASSIFICATION":
-        # print('-- Solving as BINARY_CLASSIFICATION')
         return ml_utils.learn_data_transformation_BINARY_CLASSIFICATION(
             X_train, y_train, X_test, y_test
         )
     elif y_type == "MULTICLASS_CLASSIFICATION":
-        # print('-- Solving as MULTICLASS_CLASSIFICATION')
         return ml_utils.learn_data_transformation_MULTICLASS_CLASSIFICATION(
             X_train, y_train, X_test, y_test, include_aggregated, non_numeric
         )
     elif y_type == "REGRESSION":
-        # print('-- Solving as REGRESSION')
         return ml_utils.learn_data_transformation_REGRESSION(
             X_train,
             y_train,
@@ -950,12 +848,6 @@ def learn_data_transformation_textual_feature(
     except:
         X_test_new = X_test_new
 
-    # print(X_train.shape)
-    # print(X_test.shape)
-    # print(y_train.shape)
-    # print(y_test.shape)
-    # print(numeric_attributes)
-    # print(X_train_new.head().to_string())
     if not grouping:
         try:
             learn_data_transformation_lambda = lambda: learn_data_transformation(
@@ -969,7 +861,6 @@ def learn_data_transformation_textual_feature(
             new_solutions = run_function(
                 learn_data_transformation_lambda, foofah_time_limit
             )
-            # print(new_solutions)
             return new_solutions, X_train.columns.tolist()
         except:
             return {}, []
@@ -1011,9 +902,6 @@ def inspect_row(row_id, T_pair_validation):
         row_solution = table_dependent_row_inspection(
             row_to_inspect_validation, T_pair_validation.T_prime.projected_table
         )
-    # Conflict with predicate resolution:
-    # if not row_solution:
-    #     row_solution = table_dependent_row_inspection_by_column(row_to_inspect, T_pair.T_prime.projected_table)
     return row_solution
 
 
@@ -1058,18 +946,6 @@ def inspect_multiple_rows(
         and len(T_pair_validation.T.table.iloc[:, a].unique())
         < textual_attributes_with_small_domain_threshold
     ] + categorical_attributes
-    # rows_to_inspect = full_rows.iloc[:, numeric_attributes]
-    # revised_table = full_table.iloc[:, numeric_attributes]
-    # for a_small_domain in textual_attributes_with_small_domain:
-    #     one_hot_rep_rows = pd.get_dummies(full_rows.iloc[:, a_small_domain],
-    #                                      prefix=str(a_small_domain)).astype(int)
-    #     rows_to_inspect = rows_to_inspect.join(one_hot_rep_rows)
-    #     print(rows_to_inspect.columns)
-    #     one_hot_rep_table = pd.get_dummies(full_table.iloc[:, a_small_domain],
-    #                                      prefix=str(a_small_domain)).astype(int)
-    #     revised_table = full_table.join(one_hot_rep_table)
-    #     print(revised_table.columns)
-    # print(T_pair_validation.T_prime.projected_table)
 
     return predicate_resolution(
         full_rows_validation,
@@ -1089,23 +965,16 @@ def table_independent_row_inspection(row):
         flag = "Columns_*{}*_CONTAIN/S_NAN".format(
             ",".join(pd.DataFrame(row[row.isna()]).index.tolist())
         )
-        # print('?Do we also want to provide the column that had the null value?')
-        # print('The row was removed because it contains a NaN value')
     return flag
 
 
 def table_dependent_row_inspection(row, table):
-    # print('--- TBI ---')
     flag = False
     expanded_table = table.append(row)
     if expanded_table.duplicated().tolist()[-1]:
         flag = "DUPLICATED"
-        # print('The row was removed as a result of deduplication')
     else:
         flag = "UNKNOWN"
-        # print('!!!apply predicate resolution!!!')
-        # print('FIND MOST SIMILAR ROWS and then do that:')
-        # data_transformation_detection(table, expanded_table, len(expanded_table), False)
     return flag
 
 
@@ -1131,6 +1000,7 @@ def evaluate_row_removal(
     start = time.time()
     recreated_T_prime_validation = T_pair_validation.T.table
     recreated_T_prime_generalization = T_pair_generalization.T.table
+
     # Basic Operations
     if "REMOVE_DUPLICATED" in op_set:
         recreated_T_prime_validation = recreated_T_prime_validation.drop_duplicates()
@@ -1141,6 +1011,7 @@ def evaluate_row_removal(
         recreated_T_prime_validation = recreated_T_prime_validation.dropna()
         print("also remove those that contain nan")
         recreated_T_prime_generalization = recreated_T_prime_generalization.dropna()
+
     # Apply resolved predicate
     recreated_T_prime_validation["predicate_label"] = recreated_T_prime_validation.index
     recreated_T_prime_validation["predicate_label"] = recreated_T_prime_validation[
@@ -1184,24 +1055,13 @@ def evaluate_row_removal(
 
 
 def table_dependent_row_inspection_by_column(row, table):
-    # print('--- TBI ---')
     flag = False
-    # expanded_table = table.append(row)
     numeric_attributes = [
         a for a in table.columns if not pd.api.types.is_string_dtype(table[a])
     ]
     for col in numeric_attributes:
-        mean = np.mean(table[col])
-        std = np.std(table[col])
         row_in_col = row[col].mean()
-        z = (row_in_col - mean) / std
-        # if z > 10:
-        #     print(row_in_col)
-        #     print(mean)
-        #     flag = 'OUTLIER (Z-method)_(' + col + ')'
-        #     break
         Q1 = np.percentile(table[col], 25, interpolation="midpoint")
-        Q2 = np.percentile(table[col], 50, interpolation="midpoint")
         Q3 = np.percentile(table[col], 75, interpolation="midpoint")
         IQR = Q3 - Q1
         low_lim = Q1 - 1.5 * IQR
@@ -1230,22 +1090,14 @@ def predicate_resolution(
         :, textual_attributes_with_small_domain
     ].astype(str)
     ohe = OneHotEncoder(handle_unknown="ignore")
-    # print(textual_attributes_with_small_domain)
-    # print(full_table_validation)
+
     ohe.fit(X_train_before_projection_categorial)
     one_hot_rep = pd.DataFrame(
         ohe.transform(X_train_before_projection_categorial).toarray(),
         columns=ohe.get_feature_names_out(),
     )
     X_train[one_hot_rep.columns.tolist()] = one_hot_rep
-    # print(one_hot_rep)
-    # print(X_train)
     X_train = X_train.fillna(0)
-    # if len(textual_attributes_with_small_domain):
-    #     for a_small_domain in textual_attributes_with_small_domain:
-    #         X_for_a = X_train_before_projection.iloc[:, a_small_domain]
-    #         one_hot_rep = pd.get_dummies(X_for_a, prefix=str(a_small_domain)).astype(int)
-    #         X_train[one_hot_rep.columns.tolist()] = one_hot_rep
 
     y_train = y_0 + y_1
     X_0 = full_table_generalization
@@ -1263,12 +1115,6 @@ def predicate_resolution(
     )
     X_test[one_hot_rep.columns.tolist()] = one_hot_rep
     X_test = X_test.fillna(0)
-
-    # if len(textual_attributes_with_small_domain):
-    #     for a_small_domain in textual_attributes_with_small_domain:
-    #         X_for_a = X_before_projection.iloc[:, a_small_domain]
-    #         one_hot_rep = pd.get_dummies(X_for_a, prefix=str(a_small_domain)).astype(int)
-    #         X_test[one_hot_rep.columns.tolist()] = one_hot_rep
 
     y_test = y_0 + y_1
     (
@@ -1321,7 +1167,7 @@ def inspect_removed_column(
     nan_rate_generalization = nan_size_generalization / len(
         projected_column_generalization
     )
-    # print(column_nan_threshold, nan_rate_validation, nan_rate_generalization)
+
     if nan_rate_validation > column_nan_threshold:
         eval_validation = 1.0
         eval_generalization = (
@@ -1340,17 +1186,6 @@ def inspect_removed_column(
     for col in projected_table_validation.columns:
         candidate_col_validation = projected_table_validation[col]  # .to_frame()
         candidate_col_generalization = projected_table_generalization[col]
-        # Set-Based
-        # overlap = pd.Series(list(set(candidate_col).intersection(set(projected_column))))
-
-        # Overlapping elements
-        # if projected_column.dtypes[0] == candidate_col.dtypes[0]:
-        #     overlap = projected_column.merge(candidate_col,
-        #                                      left_on=projected_column.columns[0],
-        #                                      right_on=candidate_col.columns[0],
-        #                                      how='inner')
-        # else:
-        #     overlap = []
 
         # Explicitly checking mathcing rows
         overlap_validation = len(
@@ -1373,15 +1208,12 @@ def inspect_removed_column(
                 if l_r == r_r
             ]
         )
-        # print([(l_r, r_r) for l_r, r_r in zip(projected_column.tolist(), candidate_col.tolist())])
-        # print(overlap)
-        # print(len(candidate_col))
-        # print(len(projected_column))
+
         overlap_ratio_validation = overlap_validation / len(projected_column_validation)
         overlap_ratio_generalization = overlap_generalization / len(
             projected_column_generalization
         )
-        # print(duplicate_column_overlap_threshold, overlap_ratio_validation, overlap_ratio_generalization)
+
         if overlap_ratio_validation > duplicate_column_overlap_threshold:
             eval_validation = 1.0
             eval_generalization = (
@@ -1548,11 +1380,8 @@ def inspect_group_by_candidate(
         i: T_pair_validation.T.headers[i] for i in group_by_candidates
     }
     X_train = T_pair_validation.T.table
-    # attributes_to_consider = [i for i in T_pair_validation.T_prime.A if i != T_pair_validation.sigma_A[0][1]]
-    # y_train = T_pair_validation.T_prime.table.iloc[:, attribute_2_b_explained]
     y_train = T_pair_validation.T_prime.table.iloc[:, :]
     X_test = T_pair_generalization.T.table
-    # y_test = T_pair_generalization.T_prime.table.iloc[:, attribute_2_b_explained]
     y_test = T_pair_generalization.T_prime.table.iloc[:, :]
     sols = {}
     for group_by_candidate in ml_utils.powerset(group_by_candidates):
@@ -1566,5 +1395,4 @@ def inspect_group_by_candidate(
         )
         if sol:
             sols.update(sol)
-        # print(sol)
     return sols

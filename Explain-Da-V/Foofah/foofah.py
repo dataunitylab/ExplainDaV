@@ -1,5 +1,4 @@
 import argparse
-# from .foofah_libs.generate_prog import create_python_prog
 import contextlib
 import csv
 import json
@@ -7,11 +6,9 @@ import os
 import queue
 from timeit import default_timer as timer
 
-# from . import foofah_libs.operators as Operations
 import numpy as np
 from Foofah.foofah_libs.foofah_node import FoofahNode
 from Foofah.foofah_libs.generate_prog import create_python_prog
-# from .foofah_libs.foofah_node import FoofahNode
 from Foofah.foofah_libs.operators import *
 from tabulate import tabulate
 
@@ -476,24 +473,16 @@ def main(
         raw_data = [list(map(str, x)) for x in test_data["InputTable"]]
         target = [list(map(str, x)) for x in test_data["OutputTable"]]
 
-        # print(target)
-
         if if_auto_read:
             raw_data = extract_table(raw_data)
 
         start = timer()
-        # a = lambda x, p1, s: f_split_first(x, p1, s)
-        # print(a(raw_data, 0, ' '))
-        # exit()
         search_space = None
-        # print(what_to_explain)
         if what_to_explain == "columns":
             if target_type == "TEXTUAL":
                 search_space = add_ops_column()
             elif target_type == "BINARY_CLASSIFICATION":
                 search_space = add_ops_column_text_to_class()
-            # elif target_type == 'MULTICLASS_CLASSIFICATION':
-            #     search_space = add_ops_column_text_to_class()
             else:
                 search_space = add_ops_column_text_to_numeric()
         elif what_to_explain == "row":
@@ -524,32 +513,8 @@ def main(
             p3=not p3off,
         )
 
-        # if search_algo == ALGO_BFS:
-        #     final_node, open_nodes, closed_nodes = a_star_search(raw_data, target, add_ops(), debug_level,
-        #                                                          timeout, batch=if_batch, algo=search_algo,
-        #                                                          p1=not p1off, p2=not p2off, p3=not p3off)
-        #
-        # # elif search_algo == ALGO_A_STAR:
-        # #     final_node, open_nodes, closed_nodes = a_star_search(raw_data, target, add_ops(), debug_level,
-        # #                                                          timeout = 5, batch=if_batch, epsilon=epsilon,
-        # #                                                          bound=bound, algo=search_algo, p1=not p1off,
-        # #                                                          p2=not p2off,
-        # #                                                          p3=not p3off)
-        # elif search_algo == ALGO_A_STAR:
-        #     final_node, open_nodes, closed_nodes = a_star_search(raw_data, target, add_ops_column(), debug_level,
-        #                                                          timeout = ext_time_limit, batch=if_batch, epsilon=epsilon,
-        #                                                          bound=bound, algo=search_algo, p1=not p1off,
-        #                                                          p2=not p2off,
-        #                                                          p3=not p3off)
-        # elif search_algo == ALGO_A_STAR_NAIVE:
-        #     final_node, open_nodes, closed_nodes = a_star_search(raw_data, target, add_ops(), debug_level,
-        #                                                          timeout, batch=if_batch, epsilon=epsilon,
-        #                                                          bound=bound, algo=search_algo, p1=not p1off,
-        #                                                          p2=not p2off,
-        #                                                          p3=not p3off)
-
         end = timer()
-        # if_detail = ext_if_detail
+
         if final_node:
             path = reconstruct_path(final_node)
             # Some statistics
@@ -560,25 +525,6 @@ def main(
             branch_factor = max(np.real(np.roots(poly)))
             create_python_prog(path, raw_data, True)
 
-            # if not if_detail:
-            #     return
-            # program = create_python_prog(path, raw_data, True)
-            #
-            # print("# A Program Has Been Successfully Synthesized")
-            # print("#")
-            # print(("# Input file:", test_file))
-            # print(("# Total operations:", len(path) - 1))
-            # print(("# Time elapsed:    %.3f s   Nodes visited:  %d   Nodes created: %d" % (
-            #     (end - start), num_visited, nodes_created)))
-            # print(("# Naive branching factor: %d   Effective branching factor: %.2f" % (
-            # len(add_ops()), branch_factor)))
-            # print(("# Make child time: %.2f s   Heuristic time: %.2f s" % (
-            #     sum(final_node.times['children']), sum(final_node.times['scores']))))
-            # print(("#", "-" * 50))
-            # print()
-            # print(program)
-
-            # else:
             with open("foofah_log", "w") as o:
                 with contextlib.redirect_stdout(o):
                     print(("-" * 50))
@@ -729,7 +675,6 @@ def main(
                             json.dump(test_data, outfile)
 
         else:
-            # print("*** Solution Not Found ***")
             return False
     return True
 

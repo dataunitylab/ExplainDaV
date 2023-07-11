@@ -8,19 +8,15 @@ import warnings
 from pathlib import Path
 
 import data_gen
-# from Baselines.internal_baselines import *
 import func_timeout
 import numpy as np
 import pandas as pd
 import utils
-# from pandas_profiling import ProfileReport
 from config import *
 from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import OneHotEncoder
 from Table import Table
 from Table_Pair import Table_Pair
-
-# from Baselines.SQUARES.reproduce import main_squares_in
 
 
 def run_function(f, max_wait):
@@ -161,13 +157,7 @@ def explain_attributes_RHDA(
             FDs_LHS = utils.find_fd(T_pair_validation, attribute_2_b_explained)
         else:
             FDs_LHS = [T_pair_validation.RHCA]
-        # FDs_LHS = [[0]]### REMOVE!!!
-        # RHS_type = T_pair_validation.T_prime.get_attributes_types([attribute_2_b_explained])[0]
-        # target_task = utils.get_target_type(RHS_type)
-        # print(T_prime.get_feature_like_attributes())
-        # 'BINARY_CLASSIFICATION'/'MULTICLASS_CLASSIFICATION'/'REGRESSION'/'TEXTUAL'
-        # print(target_task)
-        # if target_task in ['BINARY_CLASSIFICATION', 'MULTICLASS_CLASSIFICATION', 'REGRESSION']:
+
         for attribute_set in FDs_LHS:
             print(attribute_set)
             new_solutions = utils.resolve_for_attribute_set(
@@ -179,7 +169,7 @@ def explain_attributes_RHDA(
                 run_only_reg=run_only_reg,
             )
             solutions.update(new_solutions)
-        # print(solutions)
+
         # No find origin:
         print("-- no origin --")
         resolve_for_attribute_set_lambda = lambda: utils.resolve_for_attribute_set(
@@ -202,7 +192,6 @@ def explain_attributes_RHDA(
                 "(no_find_origin) no solution found!": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
             }
         solutions.update(new_solutions)
-        # print(solutions)
 
         # Try only Numeric!:
         print("-- only numeric --")
@@ -240,8 +229,6 @@ def explain_attributes_RHDA(
                 "(all_numeric) no solution found!": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
             }
         solutions.update(new_solutions)
-        # print(solutions)
-        # Try only Textual!:
         print("-- only textual --")
         textual_attributes = [
             a
@@ -268,7 +255,6 @@ def explain_attributes_RHDA(
                 "(all_textual) no solution found!": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
             }
         solutions.update(new_solutions)
-        # print(solutions)
 
         solution_found = bool(len(solutions))
         best_sol = None
@@ -279,9 +265,6 @@ def explain_attributes_RHDA(
                 unsolved_targets.append(attribute_2_b_explained)
             # TODO: priority to numerical solutions? What if I have more than one best solution?
             # TODO: implement and return more than one score
-            # print(solutions)
-            # print('First meet some quality threshold then use the explainability??')
-            # print('Best Explanation Found: ->', best_sol, '<- with score of', best_sol_eval)
         else:
             unsolved_targets.append(attribute_2_b_explained)
         if print_all_solutions:
@@ -331,9 +314,6 @@ def explain_attributes_RHDA(
             [attribute_solutions, solutions_as_df[attribute_solutions.columns]]
         )
     return attribute_solutions
-    # print(unsolved_targets)
-    # break
-    # print(attribute_solutions)
 
 
 def explain_attributes_RHDA_no_record_match(T_pair_validation, T_pair_generalization):
@@ -451,9 +431,7 @@ def explain_attributes_LHDA(T_pair_validation, T_pair_generalization, is_record_
         else:
             start = time.time()
             FDs = utils.find_fd(T_pair_validation, attribute_2_b_explained, "L")
-            # print('Explaining ', T_pair_validation.T.get_attributes_names([attribute_2_b_explained]))
             single_origin_fds = []
-            # print(len(T_pair_validation.T.table.iloc[:, attribute_2_b_explained].unique()))
             seen_FDs = FDs.copy()
             while FDs:
                 origin = FDs.pop()
@@ -470,7 +448,7 @@ def explain_attributes_LHDA(T_pair_validation, T_pair_generalization, is_record_
             origin_sorted, cardinalities = utils.get_cardinality(
                 T_pair_validation.T.table, single_origin_fds + [attribute_2_b_explained]
             )
-            # print(cardinalities)
+
             if origin_sorted:
                 found_origin = origin_sorted[0]
                 FDs_gen = utils.find_fd(
@@ -595,27 +573,19 @@ def explain_rows_LHDr(T_pair_validation, T_pair_generalization):
     if len(T_pair_validation.LHDr) == 0:
         return row_solutions
     for row_2_b_explained in T_pair_validation.LHDr:
-        # print('--', str(row_2_b_explained),
-        #       '(' + str(T.get_row_by_id(row_2_b_explained)) + ') --')
         row_solution = utils.inspect_row(row_2_b_explained, T_pair_validation)
-        # print(row_solution)
         if row_solution == "UNKNOWN":
             unsolved_rows_validation.append(row_2_b_explained)
         else:
             solved_rows_validation[row_2_b_explained] = row_solution
-            # print('-----', str(row_2_b_explained), '-----')
-            # print(row_solution)
     op_set = utils.get_recreation_operations(solved_rows_validation)
     for row_2_b_explained in T_pair_generalization.LHDr:
-        # print('--', str(row_2_b_explained),
-        #       '(' + str(T.get_row_by_id(row_2_b_explained)) + ') --')
         row_solution = utils.inspect_row(row_2_b_explained, T_pair_generalization)
-        # print(row_solution)
         if row_solution == "UNKNOWN":
             unsolved_rows_generalization.append(row_2_b_explained)
         else:
             solved_rows_generalization[row_2_b_explained] = row_solution
-    # print('-----', str(unsolved_rows_validation), '-----')
+
     sol, validation_labels, generalization_labels = utils.inspect_multiple_rows(
         unsolved_rows_validation,
         T_pair_validation,
@@ -664,7 +634,6 @@ def explain_rows_RHDr(T_pair_validation, T_pair_generalization):
     )
 
     for row_2_b_explained in T_pair_validation.RHDr:
-        # print('-----', str(row_2_b_explained), '-----')
         solution = utils.inspect_added_row(T_pair_validation, row_2_b_explained)
         if solution:
             solutions_as_df = pd.DataFrame.from_dict(
@@ -710,16 +679,9 @@ def main_regular():
     print("Attributes to explain:")
     print("LHDA:", T_pair.LHDA, "RHDA:", T_pair.RHDA)
     print("-" * 50)
-    # RHDA_solutions = explain_attributes_RHDA(T_pair)
-    # RHDA_solutions['orientation'] = 'Columns'
-    # RHDA_solutions['direction'] = 'Addition'
-    # explain_attributes_LHDA(T_pair)
 
     print("-" * 50)
-    # print('Rows to explain:')
     print("LHDr:", T_pair.LHDr, "RHDr:", T_pair.RHDr)
-    # explain_rows_LHDr(T_pair)
-    # explain_rows_RHDr(T_pair)
 
 
 def main_full():
@@ -730,18 +692,6 @@ def main_full():
     utils.find_attribute_match(T_pair)
     T_prime.update_projected_table(T_pair.RHCA)
     utils.find_record_match(T_pair, False)
-
-    # print('Attributes to explain:')
-    # print('LHDA:', T_pair.LHDA, 'RHDA:', T_pair.RHDA)
-    # print("-" * 50)
-    # explain_attributes_RHDA(T_pair)
-    # explain_attributes_RHDA(print_all_solutions=True)
-    # explain_attributes_RHDA(use_fd_discovery=False)
-    # print("-" * 50)
-    # print('Rows to explain:')
-    # print('LHDr:', T_pair.LHDr, 'RHDr:', T_pair.RHDr)
-    # print('Explaining full table transformation:')
-    # explain_full(T_pair)
 
 
 def main_with_problem_sets(
@@ -773,10 +723,7 @@ def main_with_problem_sets(
         print(problem_set["Setup"])
         if i in [52, 63, 90, 91, 92, 93]:
             continue
-        # if i != 0:
-        #     continue
-        # if i < 9:
-        #     continue
+
         T_validation = Table(problem_set["T_validation"])
         T_prime_validation = Table(problem_set["T_prime_validation"])
         T_pair_validation = Table_Pair(T_validation, T_prime_validation)
@@ -794,12 +741,7 @@ def main_with_problem_sets(
             T_prime_generalization.update_projected_table(T_pair_generalization.RHCA)
             T_generalization.update_projected_table(T_pair_generalization.LHCA)
             utils.find_record_match(T_pair_generalization)
-        # if not is_record_match:
-        #     explain_full(T_pair_validation, T_pair_generalization)
-        #     continue
 
-        # print('Maybe find attribute match without records match and directly search for group by and pivot?')
-        # print(is_record_match)
         if len(T_pair_validation.sigma_A) == 0:
             print("remember that this is very easy to resolve!")
             continue
@@ -855,19 +797,6 @@ def main_with_problem_sets(
             "output/output_{}_explain_da_V_{}.csv".format(dataset_name, start_time)
         )
         output.to_csv("output/output_explain_da_V_most_recent.csv")
-        # if not use_fd_discovery:
-        #     output.to_csv('output/output_{}_explain_da_V_nofa_{}.csv'.format(dataset_name, time.time()))
-        #     output.to_csv('output/output_explain_da_V_nofd_most_recent.csv')
-        # if treat_all_numeric_origin:
-        #     output.to_csv('output/output_{}_explain_da_V_allnum_{}.csv'.format(dataset_name, time.time()))
-        #     output.to_csv('output/output_explain_da_V_allnum_most_recent.csv')
-        #     output.to_csv('output/output_explain_da_V_nofd_most_recent.csv')
-        # if treat_all_textual_origin:
-        #     output.to_csv('output/output_{}_explain_da_V_alltext_{}.csv'.format(dataset_name, time.time()))
-        #     output.to_csv('output/output_explain_da_V_alltext_most_recent.csv')
-        # else:
-        # output.to_csv('output/output_{}_explain_da_V_{}.csv'.format(dataset_name, time.time()))
-        # output.to_csv('output/output_explain_da_V_most_recent.csv')
 
 
 def main_with_problem_sets_baseline_original(
@@ -896,10 +825,7 @@ def main_with_problem_sets_baseline_original(
         print(problem_set["Setup"])
         if i in [52, 63, 90, 91, 92, 93]:
             continue
-        # if extend_for_auto_pipeline and i < 15:
-        # continue]
-        # if i < 3:
-        #     continue
+
         T_validation = Table(problem_set["T_validation"])
         T_prime_validation = Table(problem_set["T_prime_validation"])
         T_pair_validation = Table_Pair(T_validation, T_prime_validation)
@@ -1040,17 +966,3 @@ def main_save_alternatives():
 if __name__ == "__main__":
     warnings.filterwarnings("ignore")
     main_with_problem_sets()
-    # main_with_problem_sets(run_only_reg=True)
-    # main_with_problem_sets(use_fd_discovery=False)
-    # main_with_problem_sets(treat_all_numeric_origin=True)
-    # main_with_problem_sets(treat_all_textual_origin=True)
-    # print('Foofah')
-    # main_with_problem_sets_baseline_original(extend_for_auto_pipeline=False, extend_for_plus=False)
-    # print('Auto-pipeline')
-    # main_with_problem_sets_baseline_original(extend_for_auto_pipeline=True, extend_for_plus=False)
-    # print('Foofah +')
-    # main_with_problem_sets_baseline_original(extend_for_auto_pipeline=False, extend_for_plus=True)
-    # main_squares()
-    # main_regular()
-    # main_full()
-    # main_save_alternatives()

@@ -36,9 +36,6 @@ PRUNE_1 = True
 delimiters = "[]()-_,!@#$%^&*{}|/;:+`~=' " + '"' + "\\" + "\n"
 
 
-# delimiters = " " + '"' + "\\" + "\n"
-
-
 def f_join_char(table, p1, c):
     if p1 > len(table[0]) - 2:
         return None
@@ -415,16 +412,6 @@ def f_transpose(table):
     return [list(i) for i in zip(*table)]
 
 
-# def f_swap_columns(table, col1, col2):
-#     if not isinstance(table[0], list):
-#         return table
-#     else:
-#         new_table = []
-#         for x in table:
-#             new_table.append(x[:p1] + x[p1 + 1:] + [x[p1]])
-#         return new_table
-
-
 def _get_col_dtype(col):
     """
     Infer datatype of a pandas column, process only if the column dtype is object.
@@ -735,7 +722,6 @@ def f_divide_on_dash(table, col):
     return new_table
 
 
-# meta_chars = ["\d+", "\\u+", "\l+", "\a+", "[A-Za-z0-9]+", "[A-Za-z0-9]+", "\w+", "[A-Za-z0-9\ ]+"]
 meta_chars = [
     "\d+",
     r"\\u+",
@@ -944,8 +930,6 @@ def f_split_tab(table, col):
 
 
 def f_drop(table, col):
-    # print('drop')
-    # print(table)
     new_table = []
 
     # Remove drop if there is only 1 column in the table
@@ -954,24 +938,19 @@ def f_drop(table, col):
 
     for x in table:
         new_table.append(x[:col] + x[col + 1 :])
-    # print(new_table)
+
     return new_table
 
 
 ### Text to numeric ###
 def f_count_s(table, col, char):
-    # NEW!
-    # print('Hi, I am trying this new function!!!')
     result_table = []
-    # print(table)
     for row in table:
-        # count = str(row[col].count(char))
-        # print(row)
         try:
             count = str(len(re.findall(row[col], char)))
         except:
             count = str(row[col].count(char))
-        # result_table.append([count, ])
+
         result_table.append(
             row[: col + 1]
             + [
@@ -1030,7 +1009,6 @@ def f_number_of_stopwords(table, col):
     result_table = []
     for row in table:
         count = str(len([word for word in row[col].split() if word in stopwords_list]))
-        # result_table.append([count, ])
         result_table.append(
             row[: col + 1]
             + [
@@ -1043,13 +1021,9 @@ def f_number_of_stopwords(table, col):
 
 ### Text to numeric ###
 def f_exists_s(table, col, char):
-    # NEW!
-    # print('Hi, I am trying this new function!!!')
     result_table = []
     for row in table:
-        # exists = str(int(char in row[col]))
         exists = str(int(bool(len(re.findall(row[col], char)))))
-        # result_table.append([exists, ])
         result_table.append(
             row[: col + 1]
             + [
@@ -1112,7 +1086,6 @@ def f_contains_a_stopword(table, col):
         count = str(
             bool(len([word for word in row[col].split() if word in stopwords_list]))
         )
-        # result_table.append([count, ])
         result_table.append(
             row[: col + 1]
             + [
@@ -1125,12 +1098,9 @@ def f_contains_a_stopword(table, col):
 
 ### Text to numeric ###
 def f_len(table, col):
-    # NEW!
-    # print('Hi, I am trying this new function!!!')
     result_table = []
     for row in table:
         len_str = str(len(row[col]))
-        # result_table.append([len_str, ])
         result_table.append(
             row[: col + 1]
             + [
@@ -1138,7 +1108,6 @@ def f_len(table, col):
             ]
             + row[col + 1 :]
         )
-    # print(result_table)
     return result_table
 
 
@@ -1147,14 +1116,9 @@ seen_values_for_table_col = {}
 
 ### Text to numeric ###
 def f_is_one_hot(table, col):
-    # NEW!
-    # print('Hi, I am trying this new function!!!')
-    # if (str(table), col) not in seen_values_for_table_col:
-    #     seen_values_for_table_col[(str(table), col)] = []
     if col not in seen_values_for_table_col:
         seen_values_for_table_col[col] = []
-    # values_in_the_col = list(set([row[col] for row in table if row[col] not in
-    #                               seen_values_for_table_col[(str(table), col)]]))
+
     values_in_the_col = list(
         set(
             [
@@ -1164,13 +1128,8 @@ def f_is_one_hot(table, col):
             ]
         )
     )
-    # if values_in_the_col == ['0', '1']:
-    #     return table
     available_cols = list(range(len(table[0])))
     available_cols.remove(col)
-    # print('---beginning---')
-    # print(values_in_the_col)
-    # print(available_cols)
     is_change = False
     while any(val.isnumeric() for val in values_in_the_col) and len(available_cols):
         col = random.sample(available_cols, 1)[0]
@@ -1188,17 +1147,10 @@ def f_is_one_hot(table, col):
         )
         is_change = True
         available_cols.remove(col)
-    # if is_change:
-    #     if col not in seen_values_for_table_col:
-    #         seen_values_for_table_col[col] = []
-    #     values_in_the_col = list(set([row[col] for row in table if row[col] not in
-    #                                   seen_values_for_table_col[col]]))
-    # print(values_in_the_col)
-    # print('---end---')
+
     if not len(values_in_the_col) or any(val.isnumeric() for val in values_in_the_col):
         return table
     sampled_val = random.sample(values_in_the_col, 1)[0]
-    # seen_values_for_table_col[(str(table), col)] += [sampled_val, ]
     seen_values_for_table_col[col] += [
         sampled_val,
     ]
@@ -1207,9 +1159,6 @@ def f_is_one_hot(table, col):
     result_table = []
     for row in table:
         is_value = str(int(row[col] == sampled_val))
-        # result_table.append([is_value, ])
-        # print(row)
-        # print(row[:col+1] + [is_value, ] + row[col + 1:])
         # NOTE: Should I replace or add. Replacing makes it a one shot one we reach the spot. Adding creates a much larger search space
         if len(values_in_the_col):
             result_table.append(
@@ -1221,7 +1170,6 @@ def f_is_one_hot(table, col):
             )
         else:
             result_table.append(row)
-    # print(result_table)
     return result_table
 
 
@@ -1240,7 +1188,6 @@ def f_remove_stopwords(table, col):
         new_row = " ".join(
             [word for word in row[col].split() if word not in stopwords_list]
         )
-        # result_table.append([count, ])
         result_table.append(
             row[: col + 1]
             + [
@@ -1255,7 +1202,6 @@ def f_remove_numeric(table, col):
     result_table = []
     for row in table:
         new_row = " ".join([word for word in row[col].split() if not word.isdigit()])
-        # result_table.append([count, ])
         result_table.append(
             row[: col + 1]
             + [
@@ -1267,7 +1213,6 @@ def f_remove_numeric(table, col):
 
 
 def f_remove_punctuation(table, col):
-    # print(table)
     result_table = []
     regex = re.compile("[%s]" % re.escape(string.punctuation))
     for row in table:
@@ -1280,7 +1225,6 @@ def f_remove_punctuation(table, col):
             ]
             + row[col + 1 :]
         )
-    # print(result_table)
     return result_table
 
 
@@ -1289,7 +1233,6 @@ def f_remove_url(table, col):
     regex = re.compile(r"https?://\S+|www\.\S+")
     for row in table:
         new_row = regex.sub("", row[col])
-        # result_table.append([count, ])
         result_table.append(
             row[: col + 1]
             + [
@@ -1305,7 +1248,6 @@ def f_remove_html_tags(table, col):
     regex = re.compile(r"<.*?>")
     for row in table:
         new_row = regex.sub("", row[col])
-        # result_table.append([count, ])
         result_table.append(
             row[: col + 1]
             + [
@@ -1323,7 +1265,6 @@ def f_spell_correction(table, col):
         new_row = " ".join(
             [word for word in row[col].split() if not TextBlob(row[col]).correct()]
         )
-        # result_table.append([count, ])
         result_table.append(
             row[: col + 1]
             + [
@@ -1336,15 +1277,9 @@ def f_spell_correction(table, col):
 
 
 def f_lemmatization(table, col):
-    # print(table)
     result_table = []
     for row in table:
         new_row = lemmatizer.lemmatize(row[col])
-        # new_row = ' '.join([lemmatizer.lemmatize(word) for word in row[col].split()])
-        # result_table.append([count, ])
-        # if new_row != row[col]:
-        #     print(row[col])
-        #     print(new_row)
         result_table.append(
             row[: col + 1]
             + [
@@ -1352,12 +1287,10 @@ def f_lemmatization(table, col):
             ]
             + row[col + 1 :]
         )
-    # print(result_table)
     return result_table
 
 
 def f_lower(table, col):
-    # print(table)
     result_table = []
     for row in table:
         new_row = row[col].lower()
@@ -1368,7 +1301,6 @@ def f_lower(table, col):
             ]
             + row[col + 1 :]
         )
-    # print(result_table)
     return result_table
 
 
@@ -2060,10 +1992,6 @@ def add_ops_auto_pipeline():
                 "num_params": 3,
             }
         )
-    # ops.append(
-    #     {'name': 'f_swap_columns', 'fxn': lambda x, p1, p2: f_swap_columns(x, p1, p2), 'params': {}, 'if_col': True, 'char': '',
-    #      'cost': 1.0, 'num_params': 3,
-    #      })
 
     for s in delimiters:
         ops.append(
@@ -2116,10 +2044,6 @@ def add_ops_auto_pipeline():
 
 def add_ops_full():
     ops = list()
-    # ops.append(
-    #     {'name': 'f_wrap', 'fxn': lambda x, p1: f_wrap(x, p1), 'params': {}, 'if_col': True, 'char': '', 'cost': 1.0,
-    #      'num_params': 2,
-    #      })
     ops.append(
         {
             "name": "f_transpose",
@@ -2142,10 +2066,6 @@ def add_ops_full():
             "num_params": 3,
         }
     )
-    # ops.append(
-    #     {'name': 'f_swap_columns', 'fxn': lambda x, p1, p2: f_swap_columns(x, p1, p2), 'params': {}, 'if_col': True, 'char': '',
-    #      'cost': 1.0, 'num_params': 3,
-    #      })
 
     return ops
 
@@ -2247,12 +2167,7 @@ def add_ops_row():
             "num_params": 2,
         }
     )
-    #
-    # ops.append(
-    #     {'name': 'f_move_to_end', 'fxn': lambda x, p1: f_move_to_end(x, p1), 'params': {}, 'if_col': True, 'char': '',
-    #      'cost': 1.0, 'num_params': 2,
-    #      })
-    #
+
     ops.append(
         {
             "name": "f_delete",
@@ -2288,24 +2203,7 @@ def add_ops_row():
             "num_params": 2,
         }
     )
-    #
-    # if WRAP_3: ops.append(
-    #     {'name': 'f_wrap_every_k_rows', 'fxn': lambda x: f_wrap_every_k_rows(x, 2), 'params': {1: '2'}, 'if_col': False,
-    #      'char': '', 'cost': 1.0, 'num_params': 1,
-    #      })
-    # if WRAP_3: ops.append(
-    #     {'name': 'f_wrap_every_k_rows', 'fxn': lambda x: f_wrap_every_k_rows(x, 3), 'params': {1: '3'}, 'if_col': False,
-    #      'char': '', 'cost': 1.0, 'num_params': 1,
-    #      })
-    # if WRAP_3: ops.append(
-    #     {'name': 'f_wrap_every_k_rows', 'fxn': lambda x: f_wrap_every_k_rows(x, 4), 'params': {1: '4'}, 'if_col': False,
-    #      'char': '', 'cost': 1.0, 'num_params': 1,
-    #      })
-    # if WRAP_3: ops.append(
-    #     {'name': 'f_wrap_every_k_rows', 'fxn': lambda x: f_wrap_every_k_rows(x, 5), 'params': {1: '5'}, 'if_col': False,
-    #      'char': '', 'cost': 1.0, 'num_params': 1,
-    #      })
-    #
+
     ops.append(
         {
             "name": "f_divide_on_comma comma",
@@ -2317,15 +2215,7 @@ def add_ops_row():
             "num_params": 2,
         }
     )
-    # ops.append(
-    #     {'name': 'f_divide_on_all_digits', 'fxn': lambda x, p1: f_divide_on_all_digits(x, p1), 'params': {},
-    #      'if_col': True,
-    #      'char': '', 'cost': 1.0,
-    #      'num_params': 2, })
-    # ops.append(
-    #     {'name': 'f_divide_on_all_alphabets', 'fxn': lambda x, p1: f_divide_on_all_alphabets(x, p1), 'params': {},
-    #      'if_col': True, 'char': '', 'cost': 1.0,
-    #      'num_params': 2, })
+
     ops.append(
         {
             "name": "f_divide_on_alphanum",
@@ -2423,22 +2313,6 @@ def add_ops_row():
 def add_ops_column():
     ops = list()
 
-    # ops.append(
-    #     {'name': 'f_fold', 'fxn': lambda x, p1: f_fold(x, p1), 'params': {}, 'if_col': True, 'char': '', 'cost': 1.0,
-    #      'num_params': 2,
-    #      })
-
-    # if WRAP_1: ops.append(
-    #     {'name': 'f_wrap', 'fxn': lambda x, p1: f_wrap(x, p1), 'params': {}, 'if_col': True, 'char': '', 'cost': 1.0,
-    #      'num_params': 2,
-    #      })
-
-    # if WRAP_2: ops.append({'name': 'f_wrap_one_row', 'fxn': lambda x: f_wrap_one_row(x), 'params': {}, 'if_col': False,
-    #                        'char': '', 'cost': 1.0,
-    #                        'num_params': 1,
-    #                        })
-    #
-
     ops.append(
         {
             "name": "f_remove_stopwords",
@@ -2498,11 +2372,6 @@ def add_ops_column():
             "num_params": 2,
         }
     )
-
-    # ops.append(
-    #     {'name': 'f_spell_correction', 'fxn': lambda x, p1: f_spell_correction(x, p1), 'params': {}, 'if_col': True,
-    #      'char': '', 'cost': 1.0, 'num_params': 2,
-    #      })
 
     ops.append(
         {
@@ -2598,11 +2467,6 @@ def add_ops_column():
         }
     )
 
-    # ops.append(
-    #     {'name': 'f_move_to_end', 'fxn': lambda x, p1: f_move_to_end(x, p1), 'params': {}, 'if_col': True, 'char': '',
-    #      'cost': 1.0, 'num_params': 2,
-    #      })
-
     ops.append(
         {
             "name": "f_delete",
@@ -2614,10 +2478,6 @@ def add_ops_column():
             "num_params": 2,
         }
     )
-
-    # ops.append({'name': 'f_delete_empty_cols', 'fxn': lambda x: f_delete_empty_cols(x), 'params': {}, 'if_col': False,
-    #             'char': '', 'cost': 1.0,
-    #             'num_params': 1, })
 
     ops.append(
         {
@@ -2631,43 +2491,6 @@ def add_ops_column():
         }
     )
 
-    # if WRAP_3: ops.append(
-    #     {'name': 'f_wrap_every_k_rows', 'fxn': lambda x: f_wrap_every_k_rows(x, 2), 'params': {1: '2'}, 'if_col': False,
-    #      'char': '', 'cost': 1.0, 'num_params': 1,
-    #      })
-    # if WRAP_3: ops.append(
-    #     {'name': 'f_wrap_every_k_rows', 'fxn': lambda x: f_wrap_every_k_rows(x, 3), 'params': {1: '3'}, 'if_col': False,
-    #      'char': '', 'cost': 1.0, 'num_params': 1,
-    #      })
-    # if WRAP_3: ops.append(
-    #     {'name': 'f_wrap_every_k_rows', 'fxn': lambda x: f_wrap_every_k_rows(x, 4), 'params': {1: '4'}, 'if_col': False,
-    #      'char': '', 'cost': 1.0, 'num_params': 1,
-    #      })
-    # if WRAP_3: ops.append(
-    #     {'name': 'f_wrap_every_k_rows', 'fxn': lambda x: f_wrap_every_k_rows(x, 5), 'params': {1: '5'}, 'if_col': False,
-    #      'char': '', 'cost': 1.0, 'num_params': 1,
-    #      })
-
-    # ops.append(
-    #     {'name': 'f_divide_on_comma comma', 'fxn': lambda x, p1: f_divide_on_comma(x, p1), 'params': {}, 'if_col': True,
-    #      'char': '', 'cost': 1.0,
-    #      'num_params': 2, })
-    # ops.append(
-    #     {'name': 'f_divide_on_all_digits', 'fxn': lambda x, p1: f_divide_on_all_digits(x, p1), 'params': {},
-    #      'if_col': True,
-    #      'char': '', 'cost': 1.0,
-    #      'num_params': 2, })
-    # ops.append(
-    #     {'name': 'f_divide_on_all_alphabets', 'fxn': lambda x, p1: f_divide_on_all_alphabets(x, p1), 'params': {},
-    #      'if_col': True, 'char': '', 'cost': 1.0,
-    #      'num_params': 2, })
-    # ops.append(
-    #     {'name': 'f_divide_on_alphanum', 'fxn': lambda x, p1: f_divide_on_alphanum(x, p1), 'params': {}, 'if_col': True,
-    #      'char': '', 'cost': 1.0,
-    #      'num_params': 2, })
-    # ops.append({'name': 'f_divide_on_date', 'fxn': lambda x, p1: f_divide_on_date(x, p1), 'params': {}, 'if_col': True,
-    #             'char': '', 'cost': 1.0,
-    #             'num_params': 2, })
     ops.append(
         {
             "name": "divide_on f_divide_on_dash",
@@ -2679,10 +2502,6 @@ def add_ops_column():
             "num_params": 2,
         }
     )
-
-    # ops.append({'name': 'f_transpose', 'fxn': lambda x: f_transpose(x), 'params': {}, 'if_col': False, 'char': '',
-    #             'cost': 1.0, 'num_params': 1,
-    #             })
 
     for s in delimiters:
         ops.append(
@@ -2729,16 +2548,6 @@ def add_ops_column():
                 "num_params": 3,
             }
         )
-        # ops.append(
-        #     {'name': 'f_count_s', 'fxn': lambda x, p1, s=s: f_count_s(x, p1, s),
-        #      'params': {2: "\'%s\'" % (s)},
-        #      'if_col': True, 'char': s, 'cost': 1.0,
-        #      'num_params': 3, })
-        # ops.append(
-        #     {'name': 'f_exists_s', 'fxn': lambda x, p1, s=s: f_exists_s(x, p1, s),
-        #      'params': {2: "\'%s\'" % (s)},
-        #      'if_col': True, 'char': s, 'cost': 1.0,
-        #      'num_params': 3, })
 
     return ops
 
@@ -2878,18 +2687,6 @@ def add_ops_column_text_to_numeric():
         }
     )
 
-    # for s in delimiters:
-    #     ops.append(
-    #         {'name': 'f_count_s', 'fxn': lambda x, p1, s=s: f_count_s(x, p1, s),
-    #          'params': {2: "\'%s\'" % (s)},
-    #          'if_col': True, 'char': s, 'cost': 1.0,
-    #          'num_params': 3, })
-    #     ops.append(
-    #         {'name': 'f_exists_s', 'fxn': lambda x, p1, s=s: f_exists_s(x, p1, s),
-    #          'params': {2: "\'%s\'" % (s)},
-    #          'if_col': True, 'char': s, 'cost': 1.0,
-    #          'num_params': 3, })
-
     return ops
 
 
@@ -3015,18 +2812,6 @@ def add_ops_column_text_to_class():
             "num_params": 2,
         }
     )
-
-    # for s in delimiters:
-    #     ops.append(
-    #         {'name': 'f_count_s', 'fxn': lambda x, p1, s=s: f_count_s(x, p1, s),
-    #          'params': {2: "\'%s\'" % (s)},
-    #          'if_col': True, 'char': s, 'cost': 1.0,
-    #          'num_params': 3, })
-    #     ops.append(
-    #         {'name': 'f_exists_s', 'fxn': lambda x, p1, s=s: f_exists_s(x, p1, s),
-    #          'params': {2: "\'%s\'" % (s)},
-    #          'if_col': True, 'char': s, 'cost': 1.0,
-    #          'num_params': 3, })
 
     return ops
 
@@ -3269,16 +3054,6 @@ def add_ops_plus():
                 "num_params": 3,
             }
         )
-        # ops.append(
-        #     {'name': 'f_count_s', 'fxn': lambda x, p1, s=s: f_count_s(x, p1, s),
-        #      'params': {2: "\'%s\'" % (s)},
-        #      'if_col': True, 'char': s, 'cost': 1.0,
-        #      'num_params': 3, })
-        # ops.append(
-        #     {'name': 'f_exists_s', 'fxn': lambda x, p1, s=s: f_exists_s(x, p1, s),
-        #      'params': {2: "\'%s\'" % (s)},
-        #      'if_col': True, 'char': s, 'cost': 1.0,
-        #      'num_params': 3, })
 
     ops.append(
         {
@@ -3531,18 +3306,6 @@ def add_ops_plus():
             "num_params": 2,
         }
     )
-
-    # for s in delimiters:
-    #     ops.append(
-    #         {'name': 'f_count_s', 'fxn': lambda x, p1, s=s: f_count_s(x, p1, s),
-    #          'params': {2: "\'%s\'" % (s)},
-    #          'if_col': True, 'char': s, 'cost': 1.0,
-    #          'num_params': 3, })
-    #     ops.append(
-    #         {'name': 'f_exists_s', 'fxn': lambda x, p1, s=s: f_exists_s(x, p1, s),
-    #          'params': {2: "\'%s\'" % (s)},
-    #          'if_col': True, 'char': s, 'cost': 1.0,
-    #          'num_params': 3, })
 
     return ops
 

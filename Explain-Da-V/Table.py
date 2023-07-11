@@ -46,10 +46,6 @@ class Table:
         for a in self.A_types:
             col = self.table.iloc[:, a]
             cardinality = len(col.unique())
-            # if cardinality == 2:
-            #     self.table.iloc[:, a] = self.table.iloc[:, a].astype('bool')
-            #     is_change = True
-            # elif cardinality <= self.CATEGORICAL_UPPER_BOUND:
             if cardinality <= self.CATEGORICAL_UPPER_BOUND:
                 self.table.iloc[:, a] = self.table.iloc[:, a].astype("category")
                 is_change = True

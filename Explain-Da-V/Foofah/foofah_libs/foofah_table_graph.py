@@ -6,7 +6,6 @@ import string
 from itertools import groupby
 from operator import itemgetter
 
-# import foofah_utils
 
 COST_DELETE_EXISTING_CELL = 1
 COST_DELETE_CELL = 1
